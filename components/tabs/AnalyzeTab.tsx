@@ -86,10 +86,11 @@ interface AnalyzeTabProps {
   apiKey: string;
   provider: string;
   model: string;
+  isReady?: boolean;
   consensusKeys?: ConsensusKeys;
 }
 
-export function AnalyzeTab({ apiKey, provider, model, consensusKeys }: AnalyzeTabProps) {
+export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: AnalyzeTabProps) {
   const [url, setUrl] = useState('');
   const [targetQuery, setTargetQuery] = useState('');
   const [geoScore, setGeoScore] = useState<number | null>(null);
@@ -177,7 +178,7 @@ export function AnalyzeTab({ apiKey, provider, model, consensusKeys }: AnalyzeTa
       : '';
 
   const handleAnalyze = async () => {
-    if (!apiKey.trim()) {
+    if (!apiKey.trim() && !isReady) {
       setValidationError('Please add your API key — click the provider button in the top right.');
       return;
     }

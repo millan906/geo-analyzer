@@ -24,6 +24,7 @@ export default function GeoAnalyzer() {
     openai: '',
   });
   const [draftKey, setDraftKey] = useState('');
+  const [serverKeys, setServerKeys] = useState<Partial<Record<ProviderId, boolean>>>({});
 
   // Load saved settings
   useEffect(() => {
@@ -47,9 +48,20 @@ export default function GeoAnalyzer() {
     setDraftKey(savedKeys[savedProvider]);
 
     if (!savedKeys[savedProvider]) setShowSettings(true);
+
+    fetch('/api/config')
+      .then((r) => r.json())
+      .then((cfg) => {
+        setServerKeys(cfg);
+        // If server has a key for the active provider, don't force settings open
+        if (cfg[savedProvider]) setShowSettings(false);
+      })
+      .catch(() => {});
   }, []);
 
   const activeKey = apiKeys[provider];
+  const hasServerKey = !!serverKeys[provider];
+  const isReady = !!activeKey || hasServerKey;
   const providerConfig = PROVIDERS[provider];
 
   const handleProviderChange = (p: ProviderId) => {
@@ -102,16 +114,16 @@ export default function GeoAnalyzer() {
           <button
             onClick={() => setShowSettings(!showSettings)}
             className={`text-xs flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${
-              activeKey
+              isReady
                 ? 'text-green-700 bg-green-50 border-green-200'
                 : 'text-gray-500 bg-white border-gray-200 hover:border-gray-300'
             }`}
           >
-            <span
-              className={`w-2 h-2 rounded-full ${activeKey ? 'bg-green-500' : 'bg-gray-300'}`}
-            />
+            <span className={`w-2 h-2 rounded-full ${isReady ? 'bg-green-500' : 'bg-gray-300'}`} />
             <span className="font-medium">{providerConfig.name}</span>
-            <span className="text-gray-400">{activeKey ? '· Connected' : '· Add key'}</span>
+            <span className="text-gray-400">
+              {activeKey ? '· Connected' : hasServerKey ? '· Ready' : '· Add key'}
+            </span>
           </button>
         </div>
 
@@ -127,7 +139,7 @@ export default function GeoAnalyzer() {
                 <div className="flex gap-2 flex-wrap">
                   {PROVIDER_IDS.map((p) => {
                     const cfg = PROVIDERS[p];
-                    const hasKey = !!apiKeys[p];
+                    const ready = !!apiKeys[p] || !!serverKeys[p];
                     return (
                       <button
                         key={p}
@@ -139,10 +151,17 @@ export default function GeoAnalyzer() {
                         }`}
                       >
                         <span
-                          className={`w-1.5 h-1.5 rounded-full ${hasKey ? 'bg-green-400' : 'bg-gray-300'}`}
+                          className={`w-1.5 h-1.5 rounded-full ${ready ? 'bg-green-400' : 'bg-gray-300'}`}
                         />
                         {cfg.fullName}
-                        {cfg.freeTier && (
+                        {serverKeys[p] && !apiKeys[p] && (
+                          <span
+                            className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${provider === p ? 'bg-indigo-500 text-indigo-100' : 'bg-blue-100 text-blue-700'}`}
+                          >
+                            SERVER
+                          </span>
+                        )}
+                        {cfg.freeTier && !serverKeys[p] && (
                           <span
                             className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${provider === p ? 'bg-indigo-500 text-indigo-100' : 'bg-green-100 text-green-700'}`}
                           >
@@ -223,6 +242,7 @@ export default function GeoAnalyzer() {
         {activeTab === 'analyze' && (
           <AnalyzeTab
             {...tabProps}
+            isReady={isReady}
             consensusKeys={{
               gemini: apiKeys.gemini,
               groq: apiKeys.groq,

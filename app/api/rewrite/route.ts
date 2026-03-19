@@ -1,5 +1,6 @@
 import { createAIStream, STREAM_HEADERS } from '@/lib/ai-stream';
 import { REWRITE_SYSTEM_PROMPT } from '@/lib/system-prompt';
+import { resolveApiKey } from '@/lib/server-keys';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -14,7 +15,11 @@ export async function POST(request: Request) {
       model = 'claude-opus-4-6',
     } = await request.json();
 
-    if (!apiKey?.trim()) return new Response('API key is required.', { status: 401 });
+    const effectiveKey = resolveApiKey(provider, apiKey);
+    if (!effectiveKey)
+      return new Response('Please add your API key — click the provider button in the top right.', {
+        status: 401,
+      });
     if (!targetQuery?.trim()) return new Response('Target AI Query is required.', { status: 400 });
     if (!content?.trim()) return new Response('Content is required.', { status: 400 });
     if (content.length > 60000)
@@ -22,7 +27,7 @@ export async function POST(request: Request) {
 
     const stream = await createAIStream({
       provider,
-      apiKey: apiKey.trim(),
+      apiKey: effectiveKey,
       model,
       system: REWRITE_SYSTEM_PROMPT,
       userMessage: `Rewrite the following content for GEO optimization.\n\nTarget AI Query: "${targetQuery.trim()}"\n\nContent to rewrite:\n${content.trim()}`,

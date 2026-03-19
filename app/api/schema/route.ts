@@ -1,5 +1,6 @@
 import { createAIStream, STREAM_HEADERS } from '@/lib/ai-stream';
 import { SCHEMA_SYSTEM_PROMPT } from '@/lib/system-prompt';
+import { resolveApiKey } from '@/lib/server-keys';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -22,7 +23,11 @@ export async function POST(request: Request) {
       model = 'claude-opus-4-6',
     } = await request.json();
 
-    if (!apiKey?.trim()) return new Response('API key is required.', { status: 401 });
+    const effectiveKey = resolveApiKey(provider, apiKey);
+    if (!effectiveKey)
+      return new Response('Please add your API key — click the provider button in the top right.', {
+        status: 401,
+      });
     if (!businessName?.trim()) return new Response('Business name is required.', { status: 400 });
 
     const parts = [
@@ -40,7 +45,7 @@ export async function POST(request: Request) {
 
     const stream = await createAIStream({
       provider,
-      apiKey: apiKey.trim(),
+      apiKey: effectiveKey,
       model,
       system: SCHEMA_SYSTEM_PROMPT,
       userMessage: `Generate GEO schema markup for this business:\n\n${parts.join('\n')}`,

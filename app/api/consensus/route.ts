@@ -1,5 +1,6 @@
 import { GEO_SYSTEM_PROMPT } from '@/lib/system-prompt';
 import { STREAM_HEADERS } from '@/lib/ai-stream';
+import { resolveApiKey } from '@/lib/server-keys';
 
 export const runtime = 'nodejs';
 export const maxDuration = 180;
@@ -38,7 +39,10 @@ export async function POST(request: Request) {
     const { content, targetQuery, geminiKey, groqKey, geminiModel, groqModel } =
       await request.json();
 
-    if (!geminiKey?.trim() && !groqKey?.trim()) {
+    const effectiveGemini = resolveApiKey('gemini', geminiKey);
+    const effectiveGroq = resolveApiKey('groq', groqKey);
+
+    if (!effectiveGemini && !effectiveGroq) {
       return new Response('At least one free API key (Gemini or Groq/Llama) is required.', {
         status: 401,
       });
@@ -50,17 +54,17 @@ export async function POST(request: Request) {
     // Run both models in parallel
     const tasks: Promise<{ model: string; analysis: string }>[] = [];
 
-    if (geminiKey?.trim()) {
+    if (effectiveGemini) {
       tasks.push(
-        callGemini(geminiKey.trim(), geminiModel || 'gemini-2.0-flash', userMessage)
+        callGemini(effectiveGemini, geminiModel || 'gemini-2.0-flash', userMessage)
           .then((text) => ({ model: 'Gemini', analysis: text }))
           .catch((err) => ({ model: 'Gemini', analysis: `ERROR: ${err.message}` }))
       );
     }
 
-    if (groqKey?.trim()) {
+    if (effectiveGroq) {
       tasks.push(
-        callGroq(groqKey.trim(), groqModel || 'llama-3.3-70b-versatile', userMessage)
+        callGroq(effectiveGroq, groqModel || 'llama-3.3-70b-versatile', userMessage)
           .then((text) => ({ model: 'Llama (Groq)', analysis: text }))
           .catch((err) => ({ model: 'Llama (Groq)', analysis: `ERROR: ${err.message}` }))
       );
@@ -109,9 +113,9 @@ Instructions:
     const { default: OpenAI } = await import('openai');
 
     // Use Groq for synthesis (free + fast streaming), fall back to Gemini via non-streaming
-    if (groqKey?.trim()) {
+    if (effectiveGroq) {
       const client = new OpenAI({
-        apiKey: groqKey.trim(),
+        apiKey: effectiveGroq,
         baseURL: 'https://api.groq.com/openai/v1',
       });
       const stream = await client.chat.completions.create({
@@ -149,7 +153,7 @@ Instructions:
 
     // Fallback: synthesize with Gemini (non-streaming, then return)
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(geminiKey.trim());
+    const genAI = new GoogleGenerativeAI(effectiveGemini);
     const geminiSynth = genAI.getGenerativeModel({ model: geminiModel || 'gemini-2.0-flash' });
     const synthResult = await geminiSynth.generateContent(synthesisPrompt);
     const synthText = synthResult.response.text();

@@ -1,5 +1,6 @@
 import { createAIStream, STREAM_HEADERS } from '@/lib/ai-stream';
 import { COMPETITOR_SYSTEM_PROMPT } from '@/lib/system-prompt';
+import { resolveApiKey } from '@/lib/server-keys';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -15,7 +16,11 @@ export async function POST(request: Request) {
       model = 'claude-opus-4-6',
     } = await request.json();
 
-    if (!apiKey?.trim()) return new Response('API key is required.', { status: 401 });
+    const effectiveKey = resolveApiKey(provider, apiKey);
+    if (!effectiveKey)
+      return new Response('Please add your API key — click the provider button in the top right.', {
+        status: 401,
+      });
     if (!targetQuery?.trim()) return new Response('Target AI Query is required.', { status: 400 });
     if (!myContent?.trim()) return new Response('Your content is required.', { status: 400 });
     if (!competitorContent?.trim())
@@ -23,7 +28,7 @@ export async function POST(request: Request) {
 
     const stream = await createAIStream({
       provider,
-      apiKey: apiKey.trim(),
+      apiKey: effectiveKey,
       model,
       system: COMPETITOR_SYSTEM_PROMPT,
       userMessage: `Perform a GEO competitor gap analysis.\n\nTarget AI Query: "${targetQuery.trim()}"\n\nMY CONTENT:\n${myContent.trim()}\n\n---\n\nCOMPETITOR CONTENT:\n${competitorContent.trim()}`,
