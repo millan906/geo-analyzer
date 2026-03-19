@@ -1,5 +1,5 @@
 import { createAIStream, STREAM_HEADERS } from '@/lib/ai-stream';
-import { GEO_SYSTEM_PROMPT } from '@/lib/system-prompt';
+import { REWRITE_SYSTEM_PROMPT } from '@/lib/system-prompt';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -24,8 +24,8 @@ export async function POST(request: Request) {
       provider,
       apiKey: apiKey.trim(),
       model,
-      system: GEO_SYSTEM_PROMPT,
-      userMessage: `Analyze the following content for GEO optimization.\n\nTarget AI Query: "${targetQuery.trim()}"\n\nContent to analyze:\n${content.trim()}`,
+      system: REWRITE_SYSTEM_PROMPT,
+      userMessage: `Rewrite the following content for GEO optimization.\n\nTarget AI Query: "${targetQuery.trim()}"\n\nContent to rewrite:\n${content.trim()}`,
       maxTokens: 8000,
     });
 

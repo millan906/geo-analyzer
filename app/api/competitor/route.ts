@@ -1,5 +1,5 @@
 import { createAIStream, STREAM_HEADERS } from '@/lib/ai-stream';
-import { GEO_SYSTEM_PROMPT } from '@/lib/system-prompt';
+import { COMPETITOR_SYSTEM_PROMPT } from '@/lib/system-prompt';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -7,7 +7,8 @@ export const maxDuration = 120;
 export async function POST(request: Request) {
   try {
     const {
-      content,
+      myContent,
+      competitorContent,
       targetQuery,
       apiKey,
       provider = 'anthropic',
@@ -16,17 +17,16 @@ export async function POST(request: Request) {
 
     if (!apiKey?.trim()) return new Response('API key is required.', { status: 401 });
     if (!targetQuery?.trim()) return new Response('Target AI Query is required.', { status: 400 });
-    if (!content?.trim()) return new Response('Content is required.', { status: 400 });
-    if (content.length > 60000)
-      return new Response('Content too long. Limit ~10,000 words.', { status: 400 });
+    if (!myContent?.trim()) return new Response('Your content is required.', { status: 400 });
+    if (!competitorContent?.trim())
+      return new Response('Competitor content is required.', { status: 400 });
 
     const stream = await createAIStream({
       provider,
       apiKey: apiKey.trim(),
       model,
-      system: GEO_SYSTEM_PROMPT,
-      userMessage: `Analyze the following content for GEO optimization.\n\nTarget AI Query: "${targetQuery.trim()}"\n\nContent to analyze:\n${content.trim()}`,
-      maxTokens: 8000,
+      system: COMPETITOR_SYSTEM_PROMPT,
+      userMessage: `Perform a GEO competitor gap analysis.\n\nTarget AI Query: "${targetQuery.trim()}"\n\nMY CONTENT:\n${myContent.trim()}\n\n---\n\nCOMPETITOR CONTENT:\n${competitorContent.trim()}`,
     });
 
     return new Response(stream, { headers: STREAM_HEADERS });
