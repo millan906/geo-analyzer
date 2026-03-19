@@ -9,7 +9,11 @@ const encoder = new TextEncoder();
 async function callGemini(apiKey: string, model: string, userMessage: string): Promise<string> {
   const { GoogleGenerativeAI } = await import('@google/generative-ai');
   const genAI = new GoogleGenerativeAI(apiKey);
-  const geminiModel = genAI.getGenerativeModel({ model, systemInstruction: GEO_SYSTEM_PROMPT });
+  const geminiModel = genAI.getGenerativeModel({
+    model,
+    systemInstruction: GEO_SYSTEM_PROMPT,
+    generationConfig: { temperature: 0 },
+  });
   const result = await geminiModel.generateContent(userMessage);
   return result.response.text();
 }
@@ -20,6 +24,7 @@ async function callGroq(apiKey: string, model: string, userMessage: string): Pro
   const response = await client.chat.completions.create({
     model,
     max_tokens: 8000,
+    temperature: 0,
     messages: [
       { role: 'system', content: GEO_SYSTEM_PROMPT },
       { role: 'user', content: userMessage },

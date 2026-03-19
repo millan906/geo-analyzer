@@ -35,6 +35,7 @@ export async function createAIStream({
           const stream = client.messages.stream({
             model,
             max_tokens: maxTokens,
+            temperature: 0,
             system,
             messages: [{ role: 'user', content: userMessage }],
           });
@@ -63,6 +64,7 @@ export async function createAIStream({
       const geminiModel = genAI.getGenerativeModel({
         model,
         systemInstruction: system,
+        generationConfig: { temperature: 0 },
       });
 
       return new ReadableStream({
@@ -103,6 +105,7 @@ export async function createAIStream({
             const stream = await client.chat.completions.create({
               model,
               max_tokens: maxTokens,
+              temperature: 0,
               stream: true,
               messages: [
                 { role: 'system', content: system },
@@ -143,6 +146,7 @@ export async function createAIStream({
             const stream = await client.chat.completions.create({
               model,
               max_tokens: maxTokens,
+              temperature: 0,
               stream: true,
               messages: [
                 { role: 'system', content: system },

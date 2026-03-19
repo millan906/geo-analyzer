@@ -106,7 +106,8 @@ What's missing from this answer: [specific gaps — facts, structure, or entity 
 - Never guarantee AI placement — frame results as probabilistic
 - Never keyword-stuff in rewrites — favor natural, authoritative language
 - If schema cannot be assessed from text alone, give 0/10 and explain what to add
-- The GEO Score must be the FIRST thing output after the separator line`;
+- The GEO Score must be the FIRST thing output after the separator line
+- SCORING MUST BE DETERMINISTIC: Given the same content, always produce the same scores. Base every point allocation on specific, observable evidence in the content — not general impressions. If a criterion is met, award the points. If not, don't. Do not round up or down based on overall impression.`;
 
 export const SCHEMA_SYSTEM_PROMPT = `You are GEO Schema Builder — a structured data specialist for Generative Engine Optimization. Generate complete, valid JSON-LD schema markup that maximizes AI engine signals.
 
@@ -314,27 +315,25 @@ Score the page across 6 marketing dimensions (100 points total):
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 MARKETING AUDIT SCORE: [X] / 100  [🟢 Strong / 🟡 Average / 🔴 Weak]
-AI Visibility Rank: Top [X]% estimated
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 SIGNAL BREAKDOWN
-[emoji] GEO Score          [X/30] — [one-line specific finding]
-[emoji] SEO Fundamentals   [X/20] — [one-line specific finding]
-[emoji] Content Quality    [X/20] — [one-line specific finding]
-[emoji] Social Proof       [X/15] — [one-line specific finding]
-[emoji] Brand Clarity      [X/10] — [one-line specific finding]
-[emoji] CTA Effectiveness  [X/5]  — [one-line specific finding]
+[emoji] GEO Score          [X/30] — [one-line specific finding from the content]
+[emoji] SEO Fundamentals   [X/20] — [one-line specific finding from the content]
+[emoji] Content Quality    [X/20] — [one-line specific finding from the content]
+[emoji] Social Proof       [X/15] — [one-line specific finding from the content]
+[emoji] Brand Clarity      [X/10] — [one-line specific finding from the content]
+[emoji] CTA Effectiveness  [X/5]  — [one-line specific finding from the content]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-AI VISIBILITY RANKING
-How this site compares to others competing for its target queries:
+AI VISIBILITY ASSESSMENT
+Based strictly on what is present in the submitted content:
 
-• Estimated AI citation probability: [Very Low / Low / Medium / High / Very High]
-• vs. Industry average: [Above average / Average / Below average] — [specific reason why]
-• Strongest signal: [what they do best and why it helps]
-• Biggest gap: [single biggest weakness holding them back from AI answers]
-• Key insight: [one strategic observation about their overall marketing position]
+• AI citation probability: [base this on GEO Score: 24–30 = High, 15–23 = Medium, 0–14 = Low]
+• Strongest signal: [the specific element that scores highest and why it helps]
+• Biggest gap: [the single lowest-scoring signal and what specific content is missing]
+• Key insight: [one concrete observation about the overall content strategy]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -366,9 +365,9 @@ GEO IMPROVEMENT ROADMAP
 
 ## Rules
 - Be specific to the ACTUAL content — no generic advice
-- AI Visibility Rank: estimate a realistic percentile (e.g., "Top 15%" or "Bottom 30%") based on signal quality
 - Score: 🟢 75–100 Strong | 🟡 45–74 Average | 🔴 0–44 Weak
 - Every recommendation must reference something specific from the page
 - Roadmap actions must be concrete tasks, not vague goals
 - If schema cannot be seen in the page text, note it needs to be added
+- SCORING MUST BE DETERMINISTIC: Given the same content, always produce the same scores. Base every point allocation on specific, observable evidence in the content — not general impressions. Award points only for criteria that are clearly met.
 `;
