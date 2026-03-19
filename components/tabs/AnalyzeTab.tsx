@@ -13,6 +13,13 @@ import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { StreamingOutput } from '@/components/ui/StreamingOutput';
 import { saveAnalysis, getUrlHistory, type HistoryEntry } from '@/lib/history';
+import {
+  getCachedReport,
+  setCachedReport,
+  bustCache,
+  cacheAgeLabel,
+  type CachedReport,
+} from '@/lib/analysis-cache';
 
 const COLOR_CLASSES = {
   green: {
@@ -99,6 +106,7 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
   const [isFetching, setIsFetching] = useState(false);
   const [priorHistory, setPriorHistory] = useState<HistoryEntry[]>([]);
   const [isConsensusMode, setIsConsensusMode] = useState(false);
+  const [cachedReport, setCachedReportState] = useState<CachedReport | null>(null);
   const hasSaved = useRef(false);
 
   const {
@@ -119,7 +127,7 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
 
   const hasBothFreeKeys = !!(consensusKeys?.gemini && consensusKeys?.groq);
 
-  const activeOutput = isConsensusMode ? consensusAnalysis : analysis;
+  const activeOutput = cachedReport?.text || (isConsensusMode ? consensusAnalysis : analysis);
 
   useEffect(() => {
     if (!activeOutput) return;
@@ -146,6 +154,11 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
         signals,
         analyzedAt: new Date().toISOString(),
       });
+      // Save full report to cache
+      const reportText = isConsensusMode ? consensusAnalysis : analysis;
+      if (reportText && url.trim()) {
+        setCachedReport(url.trim(), reportText, provider, model);
+      }
       hasSaved.current = true;
     }
   }, [isAnalyzing, geoScore, signals]);
@@ -190,9 +203,22 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
     setValidationError('');
     setGeoScore(null);
     setSignals([]);
-    setIsFetching(true);
     setIsConsensusMode(false);
     hasSaved.current = false;
+
+    // Check cache first
+    const cached = getCachedReport(url.trim());
+    if (cached) {
+      setCachedReportState(cached);
+      const score = parseGeoScore(cached.text);
+      if (score !== null) setGeoScore(score);
+      const parsed = parseSignals(cached.text);
+      if (parsed.length > 0) setSignals(parsed);
+      return;
+    }
+
+    setCachedReportState(null);
+    setIsFetching(true);
 
     try {
       const text = await fetchPageContent();
@@ -255,6 +281,16 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
     setUrl('');
     setTargetQuery('');
     setIsConsensusMode(false);
+    setCachedReportState(null);
+  };
+
+  const handleRefresh = () => {
+    bustCache(url.trim());
+    setCachedReportState(null);
+    setGeoScore(null);
+    setSignals([]);
+    reset();
+    handleAnalyze();
   };
 
   const scoreColor = geoScore !== null ? getScoreColor(geoScore) : null;
@@ -348,6 +384,22 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
               />
             </div>
           </div>
+
+          {cachedReport && (
+            <div className="flex items-center gap-2 text-xs bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
+              <span className="text-blue-500">⚡</span>
+              <span className="text-blue-700 font-medium">Cached result</span>
+              <span className="text-blue-500">·</span>
+              <span className="text-blue-600">{cacheAgeLabel(cachedReport.cachedAt)}</span>
+              <span className="text-blue-400 ml-auto">via {cachedReport.provider}</span>
+              <button
+                onClick={handleRefresh}
+                className="ml-2 text-blue-600 hover:text-blue-800 underline font-medium"
+              >
+                Refresh
+              </button>
+            </div>
+          )}
 
           <ErrorBanner error={error} />
         </div>
