@@ -1,6 +1,6 @@
 import { createAIStream, STREAM_HEADERS } from '@/lib/ai-stream';
 import { MARKETING_AUDIT_PROMPT } from '@/lib/system-prompt';
-import { resolveApiKey } from '@/lib/server-keys';
+import { resolveWithFallbacks } from '@/lib/server-keys';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -10,11 +10,11 @@ export async function POST(request: Request) {
     const {
       content,
       apiKey,
-      provider = 'anthropic',
-      model = 'claude-opus-4-6',
+      provider = 'gemini',
+      model = 'gemini-2.0-flash',
     } = await request.json();
 
-    const effectiveKey = resolveApiKey(provider, apiKey);
+    const { apiKey: effectiveKey, fallbacks } = resolveWithFallbacks(provider, model, apiKey);
     if (!effectiveKey)
       return new Response('Please add your API key — click the provider button in the top right.', {
         status: 401,
@@ -23,13 +23,16 @@ export async function POST(request: Request) {
     if (content.length > 60000)
       return new Response('Content too long. Limit ~10,000 words.', { status: 400 });
 
-    const stream = await createAIStream({
-      provider,
-      apiKey: effectiveKey,
-      model,
-      system: MARKETING_AUDIT_PROMPT,
-      userMessage: `Run a full marketing audit on this page content:\n\n${content.trim()}`,
-    });
+    const stream = await createAIStream(
+      {
+        provider,
+        apiKey: effectiveKey,
+        model,
+        system: MARKETING_AUDIT_PROMPT,
+        userMessage: `Run a full marketing audit on this page content:\n\n${content.trim()}`,
+      },
+      fallbacks
+    );
 
     return new Response(stream, { headers: STREAM_HEADERS });
   } catch (err: any) {

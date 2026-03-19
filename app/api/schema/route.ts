@@ -1,6 +1,6 @@
 import { createAIStream, STREAM_HEADERS } from '@/lib/ai-stream';
 import { SCHEMA_SYSTEM_PROMPT } from '@/lib/system-prompt';
-import { resolveApiKey } from '@/lib/server-keys';
+import { resolveWithFallbacks } from '@/lib/server-keys';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -19,11 +19,11 @@ export async function POST(request: Request) {
       services,
       faqs,
       apiKey,
-      provider = 'anthropic',
-      model = 'claude-opus-4-6',
+      provider = 'gemini',
+      model = 'gemini-2.0-flash',
     } = await request.json();
 
-    const effectiveKey = resolveApiKey(provider, apiKey);
+    const { apiKey: effectiveKey, fallbacks } = resolveWithFallbacks(provider, model, apiKey);
     if (!effectiveKey)
       return new Response('Please add your API key — click the provider button in the top right.', {
         status: 401,
@@ -43,14 +43,17 @@ export async function POST(request: Request) {
       faqs?.trim() && `FAQs:\n${faqs.trim()}`,
     ].filter(Boolean) as string[];
 
-    const stream = await createAIStream({
-      provider,
-      apiKey: effectiveKey,
-      model,
-      system: SCHEMA_SYSTEM_PROMPT,
-      userMessage: `Generate GEO schema markup for this business:\n\n${parts.join('\n')}`,
-      maxTokens: 4000,
-    });
+    const stream = await createAIStream(
+      {
+        provider,
+        apiKey: effectiveKey,
+        model,
+        system: SCHEMA_SYSTEM_PROMPT,
+        userMessage: `Generate GEO schema markup for this business:\n\n${parts.join('\n')}`,
+        maxTokens: 4000,
+      },
+      fallbacks
+    );
 
     return new Response(stream, { headers: STREAM_HEADERS });
   } catch (err: any) {
