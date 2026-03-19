@@ -75,13 +75,21 @@ function SignalBar({ signal }: { signal: Signal }) {
   );
 }
 
+interface ConsensusKeys {
+  gemini?: string;
+  groq?: string;
+  geminiModel?: string;
+  groqModel?: string;
+}
+
 interface AnalyzeTabProps {
   apiKey: string;
   provider: string;
   model: string;
+  consensusKeys?: ConsensusKeys;
 }
 
-export function AnalyzeTab({ apiKey, provider, model }: AnalyzeTabProps) {
+export function AnalyzeTab({ apiKey, provider, model, consensusKeys }: AnalyzeTabProps) {
   const [url, setUrl] = useState('');
   const [targetQuery, setTargetQuery] = useState('');
   const [geoScore, setGeoScore] = useState<number | null>(null);
@@ -89,6 +97,7 @@ export function AnalyzeTab({ apiKey, provider, model }: AnalyzeTabProps) {
   const [validationError, setValidationError] = useState('');
   const [isFetching, setIsFetching] = useState(false);
   const [priorHistory, setPriorHistory] = useState<HistoryEntry[]>([]);
+  const [isConsensusMode, setIsConsensusMode] = useState(false);
   const hasSaved = useRef(false);
 
   const {
@@ -99,13 +108,25 @@ export function AnalyzeTab({ apiKey, provider, model }: AnalyzeTabProps) {
     reset,
   } = useStream('/api/analyze');
 
+  const {
+    output: consensusAnalysis,
+    isStreaming: isConsensusAnalyzing,
+    error: consensusError,
+    run: runConsensus,
+    reset: resetConsensus,
+  } = useStream('/api/consensus');
+
+  const hasBothFreeKeys = !!(consensusKeys?.gemini && consensusKeys?.groq);
+
+  const activeOutput = isConsensusMode ? consensusAnalysis : analysis;
+
   useEffect(() => {
-    if (!analysis) return;
-    const score = parseGeoScore(analysis);
+    if (!activeOutput) return;
+    const score = parseGeoScore(activeOutput);
     if (score !== null) setGeoScore(score);
-    const parsed = parseSignals(analysis);
+    const parsed = parseSignals(activeOutput);
     if (parsed.length > 0) setSignals(parsed);
-  }, [analysis]);
+  }, [activeOutput]);
 
   useEffect(() => {
     if (url.trim()) {
@@ -128,6 +149,33 @@ export function AnalyzeTab({ apiKey, provider, model }: AnalyzeTabProps) {
     }
   }, [isAnalyzing, geoScore, signals]);
 
+  const fetchPageContent = async (): Promise<string | null> => {
+    const res = await fetch('/api/fetch-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url.trim() }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) {
+      setValidationError(data.error || 'Failed to fetch page.');
+      return null;
+    }
+    return data.text as string;
+  };
+
+  const buildHistoryContext = () =>
+    priorHistory.length > 0
+      ? `\n\nPREVIOUS ANALYSIS HISTORY FOR THIS URL:\n` +
+        priorHistory
+          .slice(0, 3)
+          .map(
+            (h) =>
+              `- Analyzed ${new Date(h.analyzedAt).toLocaleDateString()}: Score ${h.score}/100 (${h.signals.map((s) => `${s.name}: ${s.score}/${s.maxScore}`).join(', ')})`
+          )
+          .join('\n') +
+        '\n\nNote: Factor in this history when giving recommendations — acknowledge improvements or regressions.'
+      : '';
+
   const handleAnalyze = async () => {
     if (!apiKey.trim()) {
       setValidationError('Please add your API key — click the provider button in the top right.');
@@ -142,36 +190,16 @@ export function AnalyzeTab({ apiKey, provider, model }: AnalyzeTabProps) {
     setGeoScore(null);
     setSignals([]);
     setIsFetching(true);
+    setIsConsensusMode(false);
     hasSaved.current = false;
 
     try {
-      const res = await fetch('/api/fetch-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: url.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        setValidationError(data.error || 'Failed to fetch page.');
-        return;
-      }
+      const text = await fetchPageContent();
+      if (!text) return;
       setIsFetching(false);
 
-      const historyContext =
-        priorHistory.length > 0
-          ? `\n\nPREVIOUS ANALYSIS HISTORY FOR THIS URL:\n` +
-            priorHistory
-              .slice(0, 3)
-              .map(
-                (h) =>
-                  `- Analyzed ${new Date(h.analyzedAt).toLocaleDateString()}: Score ${h.score}/100 (${h.signals.map((s) => `${s.name}: ${s.score}/${s.maxScore}`).join(', ')})`
-              )
-              .join('\n') +
-            '\n\nNote: Factor in this history when giving recommendations — acknowledge improvements or regressions.'
-          : '';
-
       run({
-        content: data.text + historyContext,
+        content: text + buildHistoryContext(),
         targetQuery: targetQuery.trim() || 'Infer the most relevant target query from the content',
         apiKey: apiKey.trim(),
         provider,
@@ -184,19 +212,58 @@ export function AnalyzeTab({ apiKey, provider, model }: AnalyzeTabProps) {
     }
   };
 
+  const handleConsensus = async () => {
+    if (!url.trim()) {
+      setValidationError('Please enter a URL to analyze.');
+      return;
+    }
+
+    setValidationError('');
+    setGeoScore(null);
+    setSignals([]);
+    setIsFetching(true);
+    setIsConsensusMode(true);
+    hasSaved.current = false;
+
+    try {
+      const text = await fetchPageContent();
+      if (!text) return;
+      setIsFetching(false);
+
+      runConsensus({
+        content: text + buildHistoryContext(),
+        targetQuery: targetQuery.trim() || '',
+        geminiKey: consensusKeys?.gemini || '',
+        groqKey: consensusKeys?.groq || '',
+        geminiModel: consensusKeys?.geminiModel || 'gemini-2.0-flash',
+        groqModel: consensusKeys?.groqModel || 'llama-3.3-70b-versatile',
+      });
+    } catch {
+      setValidationError('Network error. Please try again.');
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
   const handleReset = () => {
     reset();
+    resetConsensus();
     setGeoScore(null);
     setSignals([]);
     setValidationError('');
     setUrl('');
     setTargetQuery('');
+    setIsConsensusMode(false);
   };
 
   const scoreColor = geoScore !== null ? getScoreColor(geoScore) : null;
-  const isLoading = isFetching || isAnalyzing;
-  const loadingLabel = isFetching ? 'Fetching page…' : 'Analyzing…';
-  const error = validationError || streamError;
+  const isLoading = isFetching || isAnalyzing || isConsensusAnalyzing;
+  const loadingLabel = isFetching
+    ? 'Fetching page…'
+    : isConsensusMode
+      ? 'Running Gemini + Llama…'
+      : 'Analyzing…';
+  const error = validationError || (isConsensusMode ? consensusError : streamError);
 
   return (
     <div className="space-y-5">
@@ -248,8 +315,8 @@ export function AnalyzeTab({ apiKey, provider, model }: AnalyzeTabProps) {
             />
           </div>
 
-          <div className="flex items-center justify-between pt-1">
-            {(analysis || isLoading) && !isLoading && (
+          <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
+            {(activeOutput || isLoading) && !isLoading && (
               <button
                 onClick={handleReset}
                 className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 px-3 py-2 rounded-xl"
@@ -257,7 +324,21 @@ export function AnalyzeTab({ apiKey, provider, model }: AnalyzeTabProps) {
                 ↺ Reset
               </button>
             )}
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2 flex-wrap">
+              {hasBothFreeKeys && (
+                <button
+                  onClick={handleConsensus}
+                  disabled={isLoading}
+                  className={`text-xs font-medium px-4 py-2.5 rounded-xl border transition-all ${
+                    isLoading
+                      ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                      : 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100'
+                  }`}
+                  title="Run on Gemini + Llama in parallel for a consensus score"
+                >
+                  🔀 Consensus (2 models)
+                </button>
+              )}
               <SubmitButton
                 isLoading={isLoading}
                 label="✦ Analyze Page"
@@ -326,7 +407,11 @@ export function AnalyzeTab({ apiKey, provider, model }: AnalyzeTabProps) {
         </div>
       </div>
 
-      <StreamingOutput output={analysis} isStreaming={isAnalyzing} label="GEO Analysis Report" />
+      <StreamingOutput
+        output={activeOutput}
+        isStreaming={isLoading && !isFetching}
+        label={isConsensusMode ? '🔀 Multi-Model Consensus Report' : 'GEO Analysis Report'}
+      />
     </div>
   );
 }

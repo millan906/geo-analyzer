@@ -27,6 +27,20 @@ export const PROVIDERS = {
     ],
     defaultModel: 'gemini-2.0-flash',
   },
+  groq: {
+    name: 'Llama',
+    fullName: 'Groq (Llama)',
+    keyLabel: 'Groq API Key',
+    keyPlaceholder: 'gsk_...',
+    keyLink: 'console.groq.com',
+    freeTier: true,
+    models: [
+      { id: 'llama-3.3-70b-versatile', label: 'Llama 3.3 70B — Best Free' },
+      { id: 'llama-3.1-8b-instant', label: 'Llama 3.1 8B — Fastest' },
+      { id: 'mixtral-8x7b-32768', label: 'Mixtral 8x7B — Alternative' },
+    ],
+    defaultModel: 'llama-3.3-70b-versatile',
+  },
   openai: {
     name: 'GPT',
     fullName: 'OpenAI GPT',

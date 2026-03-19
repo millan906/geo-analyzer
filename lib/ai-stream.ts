@@ -91,6 +91,46 @@ export async function createAIStream({
     }
   }
 
+  // ── Groq (Llama / Mixtral — OpenAI-compatible) ────────────────────────────
+  if (provider === 'groq') {
+    try {
+      const { default: OpenAI } = await import('openai');
+      const client = new OpenAI({ apiKey, baseURL: 'https://api.groq.com/openai/v1' });
+
+      return new ReadableStream({
+        async start(controller) {
+          try {
+            const stream = await client.chat.completions.create({
+              model,
+              max_tokens: maxTokens,
+              stream: true,
+              messages: [
+                { role: 'system', content: system },
+                { role: 'user', content: userMessage },
+              ],
+            });
+            for await (const chunk of stream) {
+              const text = chunk.choices[0]?.delta?.content || '';
+              if (text) controller.enqueue(encoder.encode(text));
+            }
+            controller.close();
+          } catch (err: any) {
+            const msg =
+              err?.status === 401
+                ? 'Invalid API key. Get a free key at console.groq.com.'
+                : err?.status === 429
+                  ? 'Rate limit reached. Groq free tier: 30 req/min. Wait and retry.'
+                  : err?.message || 'Groq request failed.';
+            controller.enqueue(encoder.encode(`ERROR: ${msg}`));
+            controller.close();
+          }
+        },
+      });
+    } catch {
+      return errorStream('OpenAI SDK not available. Run: npm install openai');
+    }
+  }
+
   // ── OpenAI ─────────────────────────────────────────────────────────────────
   if (provider === 'openai') {
     try {

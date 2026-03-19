@@ -20,6 +20,7 @@ export default function GeoAnalyzer() {
   const [apiKeys, setApiKeys] = useState<Record<ProviderId, string>>({
     anthropic: '',
     gemini: '',
+    groq: '',
     openai: '',
   });
   const [draftKey, setDraftKey] = useState('');
@@ -30,6 +31,7 @@ export default function GeoAnalyzer() {
     const savedKeys: Record<ProviderId, string> = {
       anthropic: localStorage.getItem('geo-key-anthropic') || '',
       gemini: localStorage.getItem('geo-key-gemini') || '',
+      groq: localStorage.getItem('geo-key-groq') || '',
       openai: localStorage.getItem('geo-key-openai') || '',
     };
     const deprecatedModels = ['gemini-1.5-flash', 'gemini-1.5-pro'];
@@ -218,7 +220,17 @@ export default function GeoAnalyzer() {
       </header>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {activeTab === 'analyze' && <AnalyzeTab {...tabProps} />}
+        {activeTab === 'analyze' && (
+          <AnalyzeTab
+            {...tabProps}
+            consensusKeys={{
+              gemini: apiKeys.gemini,
+              groq: apiKeys.groq,
+              geminiModel: PROVIDERS.gemini.defaultModel,
+              groqModel: PROVIDERS.groq.defaultModel,
+            }}
+          />
+        )}
         {activeTab === 'schema' && <SchemaTab {...tabProps} />}
         {activeTab === 'rewrite' && <RewriteTab {...tabProps} />}
         {activeTab === 'competitor' && <CompetitorTab {...tabProps} />}
