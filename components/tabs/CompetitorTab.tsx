@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useStream } from '@/lib/hooks/useStream';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { PROVIDERS, type ProviderId } from '@/lib/providers';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { StreamingOutput } from '@/components/ui/StreamingOutput';
 
@@ -87,8 +88,9 @@ export function CompetitorTab({ apiKey, provider, model }: CompetitorTabProps) {
       <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
         <p className="text-sm font-semibold text-indigo-900 mb-1">Competitor GEO Gap Analysis</p>
         <p className="text-xs text-indigo-700">
-          Enter your URL and a competitor's URL. Claude fetches both pages and diagnoses why they
-          show up in AI answers instead of you — plus 3 displacement plays.
+          Enter your URL and a competitor's URL. {PROVIDERS[provider as ProviderId]?.name ?? 'AI'}{' '}
+          fetches both pages and diagnoses why they show up in AI answers instead of you — plus 3
+          displacement plays.
         </p>
       </div>
 
