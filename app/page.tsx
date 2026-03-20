@@ -8,12 +8,15 @@ import { RewriteTab } from '@/components/tabs/RewriteTab';
 import { CompetitorTab } from '@/components/tabs/CompetitorTab';
 import { MarketingAuditTab } from '@/components/tabs/MarketingAuditTab';
 import { PROVIDERS, type ProviderId } from '@/lib/providers';
+import { UserMenu } from '@/components/ui/UserMenu';
+import { ConsentModal } from '@/components/ui/ConsentModal';
 
 const PROVIDER_IDS = Object.keys(PROVIDERS) as ProviderId[];
 
 export default function GeoAnalyzer() {
   const [activeTab, setActiveTab] = useState<Tab>('analyze');
   const [showSettings, setShowSettings] = useState(false);
+  const [sharedUrl, setSharedUrl] = useState('');
 
   const [provider, setProvider] = useState<ProviderId>('gemini');
   const [model, setModel] = useState<string>(PROVIDERS.gemini.defaultModel);
@@ -96,6 +99,7 @@ export default function GeoAnalyzer() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ConsentModal />
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         {/* Top bar */}
         <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
@@ -111,20 +115,25 @@ export default function GeoAnalyzer() {
             </div>
           </div>
 
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className={`text-xs flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${
-              isReady
-                ? 'text-green-700 bg-green-50 border-green-200'
-                : 'text-gray-500 bg-white border-gray-200 hover:border-gray-300'
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full ${isReady ? 'bg-green-500' : 'bg-gray-300'}`} />
-            <span className="font-medium">{providerConfig.name}</span>
-            <span className="text-gray-400">
-              {activeKey ? '· Connected' : hasServerKey ? '· Ready' : '· Add key'}
-            </span>
-          </button>
+          <div className="flex items-center gap-3">
+            <UserMenu />
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={`text-xs flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors ${
+                isReady
+                  ? 'text-green-700 bg-green-50 border-green-200'
+                  : 'text-gray-500 bg-white border-gray-200 hover:border-gray-300'
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${isReady ? 'bg-green-500' : 'bg-gray-300'}`}
+              />
+              <span className="font-medium">{providerConfig.name}</span>
+              <span className="text-gray-400">
+                {activeKey ? '· Connected' : hasServerKey ? '· Ready' : '· Add key'}
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Settings Panel */}
@@ -243,6 +252,8 @@ export default function GeoAnalyzer() {
           <AnalyzeTab
             {...tabProps}
             isReady={isReady}
+            url={sharedUrl}
+            onUrlChange={setSharedUrl}
             consensusKeys={{
               gemini: apiKeys.gemini,
               groq: apiKeys.groq,
@@ -251,10 +262,10 @@ export default function GeoAnalyzer() {
             }}
           />
         )}
-        {activeTab === 'schema' && <SchemaTab {...tabProps} />}
-        {activeTab === 'rewrite' && <RewriteTab {...tabProps} />}
+        {activeTab === 'schema' && <SchemaTab {...tabProps} url={sharedUrl} />}
+        {activeTab === 'rewrite' && <RewriteTab {...tabProps} url={sharedUrl} />}
         {activeTab === 'competitor' && <CompetitorTab {...tabProps} />}
-        {activeTab === 'audit' && <MarketingAuditTab {...tabProps} />}
+        {activeTab === 'audit' && <MarketingAuditTab {...tabProps} url={sharedUrl} />}
       </div>
     </div>
   );

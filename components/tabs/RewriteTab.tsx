@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useStream } from '@/lib/hooks/useStream';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { PROVIDERS, type ProviderId } from '@/lib/providers';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { StreamingOutput } from '@/components/ui/StreamingOutput';
 
@@ -10,10 +11,10 @@ interface RewriteTabProps {
   apiKey: string;
   provider: string;
   model: string;
+  url: string;
 }
 
-export function RewriteTab({ apiKey, provider, model }: RewriteTabProps) {
-  const [url, setUrl] = useState('');
+export function RewriteTab({ apiKey, provider, model, url }: RewriteTabProps) {
   const [targetQuery, setTargetQuery] = useState('');
   const [validationError, setValidationError] = useState('');
   const [isFetching, setIsFetching] = useState(false);
@@ -26,7 +27,7 @@ export function RewriteTab({ apiKey, provider, model }: RewriteTabProps) {
       return;
     }
     if (!url.trim()) {
-      setValidationError('Please enter a URL.');
+      setValidationError('No URL found — run a GEO analysis first in the Analyze tab.');
       return;
     }
 
@@ -68,22 +69,17 @@ export function RewriteTab({ apiKey, provider, model }: RewriteTabProps) {
       <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
         <p className="text-sm font-semibold text-indigo-900 mb-1">GEO Content Rewriter</p>
         <p className="text-xs text-indigo-700">
-          Enter your page URL — Claude rewrites it with BLUF intro, H2/H3 structure, FAQ block, and
-          entity signals to maximize AI citability.
+          Enter your page URL — {PROVIDERS[provider as ProviderId]?.name ?? 'AI'} rewrites it with
+          BLUF intro, H2/H3 structure, FAQ block, and entity signals to maximize AI citability.
         </p>
       </div>
 
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">Page URL</label>
-        <input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleRewrite()}
-          placeholder="https://yoursite.com/service-page"
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-        />
-      </div>
+      {url && (
+        <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm text-indigo-700 font-medium truncate">
+          <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" />
+          {url}
+        </div>
+      )}
 
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-1.5">

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useStream } from '@/lib/hooks/useStream';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { PROVIDERS, type ProviderId } from '@/lib/providers';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { StreamingOutput } from '@/components/ui/StreamingOutput';
 
@@ -32,10 +33,10 @@ interface SchemaTabProps {
   apiKey: string;
   provider: string;
   model: string;
+  url: string;
 }
 
-export function SchemaTab({ apiKey, provider, model }: SchemaTabProps) {
-  const [url, setUrl] = useState('');
+export function SchemaTab({ apiKey, provider, model, url }: SchemaTabProps) {
   const [businessType, setBusinessType] = useState('LocalBusiness');
   const [validationError, setValidationError] = useState('');
   const [isFetching, setIsFetching] = useState(false);
@@ -48,7 +49,7 @@ export function SchemaTab({ apiKey, provider, model }: SchemaTabProps) {
       return;
     }
     if (!url.trim()) {
-      setValidationError('Please enter a URL.');
+      setValidationError('No URL found — run a GEO analysis first in the Analyze tab.');
       return;
     }
 
@@ -99,23 +100,22 @@ export function SchemaTab({ apiKey, provider, model }: SchemaTabProps) {
       <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
         <p className="text-sm font-semibold text-indigo-900 mb-1">GEO Schema Builder</p>
         <p className="text-xs text-indigo-700">
-          Enter your page URL and business type — Claude reads the page and generates complete
-          JSON-LD schema ready to paste into Yoast or RankMath.
+          Enter your page URL and business type — {PROVIDERS[provider as ProviderId]?.name ?? 'AI'}{' '}
+          reads the page and generates complete JSON-LD schema ready to paste into Yoast or
+          RankMath.
         </p>
       </div>
 
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">Page URL</label>
-          <input
-            type="url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
-            placeholder="https://yoursite.com/about"
-            className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
-        </div>
+      <div className="flex gap-3 items-end">
+        {url && (
+          <div className="flex-1">
+            <p className="text-xs text-gray-500 mb-1.5 font-medium">Page</p>
+            <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm text-indigo-700 font-medium truncate">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" />
+              {url}
+            </div>
+          </div>
+        )}
         <div className="w-52 shrink-0">
           <label className="block text-sm font-semibold text-gray-700 mb-1.5">Business Type</label>
           <select

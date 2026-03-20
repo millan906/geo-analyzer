@@ -13,6 +13,8 @@ import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { StreamingOutput } from '@/components/ui/StreamingOutput';
 import { saveAnalysis, getUrlHistory, type HistoryEntry } from '@/lib/history';
+import { SeoComparison } from '@/components/ui/SeoComparison';
+import { getTrainingConsent } from '@/components/ui/ConsentModal';
 import {
   getCachedReport,
   setCachedReport,
@@ -45,7 +47,31 @@ const COLOR_CLASSES = {
   },
 } as const;
 
-function ScoreRing({ score, color }: { score: number; color: 'green' | 'yellow' | 'red' }) {
+function ScoreDelta({ current, previous }: { current: number; previous: number }) {
+  const delta = current - previous;
+  if (delta === 0) return null;
+  const isPositive = delta > 0;
+  return (
+    <div
+      className={`mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
+        isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+      }`}
+    >
+      {isPositive ? '▲' : '▼'} {isPositive ? '+' : ''}
+      {delta} pts from last scan
+    </div>
+  );
+}
+
+function ScoreRing({
+  score,
+  color,
+  previousScore,
+}: {
+  score: number;
+  color: 'green' | 'yellow' | 'red';
+  previousScore?: number | null;
+}) {
   const c = COLOR_CLASSES[color];
   return (
     <div className="text-center">
@@ -54,6 +80,7 @@ function ScoreRing({ score, color }: { score: number; color: 'green' | 'yellow' 
       <div className={`mt-3 inline-block px-3 py-1 rounded-full text-xs font-bold ${c.badge}`}>
         {getScoreStatus(score)}
       </div>
+      {previousScore != null && <ScoreDelta current={score} previous={previousScore} />}
     </div>
   );
 }
@@ -95,10 +122,20 @@ interface AnalyzeTabProps {
   model: string;
   isReady?: boolean;
   consensusKeys?: ConsensusKeys;
+  url: string;
+  onUrlChange: (url: string) => void;
 }
 
-export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: AnalyzeTabProps) {
-  const [url, setUrl] = useState('');
+export function AnalyzeTab({
+  apiKey,
+  provider,
+  model,
+  isReady,
+  consensusKeys,
+  url,
+  onUrlChange,
+}: AnalyzeTabProps) {
+  const setUrl = onUrlChange;
   const [targetQuery, setTargetQuery] = useState('');
   const [geoScore, setGeoScore] = useState<number | null>(null);
   const [signals, setSignals] = useState<Signal[]>([]);
@@ -108,6 +145,7 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
   const [isConsensusMode, setIsConsensusMode] = useState(false);
   const [cachedReport, setCachedReportState] = useState<CachedReport | null>(null);
   const hasSaved = useRef(false);
+  const pageContentRef = useRef<string>('');
 
   const {
     output: analysis,
@@ -159,6 +197,24 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
       if (reportText && url.trim()) {
         setCachedReport(url.trim(), reportText, provider, model);
       }
+      // Save to server (training data) for signed-in users
+      if (reportText && url.trim()) {
+        fetch('/api/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: url.trim(),
+            targetQuery: targetQuery.trim() || 'Inferred',
+            reportText,
+            geoScore,
+            signals,
+            pageContent: pageContentRef.current,
+            provider,
+            model,
+            consentTraining: getTrainingConsent(),
+          }),
+        }).catch(() => {}); // silent — user may not be signed in
+      }
       hasSaved.current = true;
     }
   }, [isAnalyzing, geoScore, signals]);
@@ -174,6 +230,7 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
       setValidationError(data.error || 'Failed to fetch page.');
       return null;
     }
+    pageContentRef.current = data.text as string;
     return data.text as string;
   };
 
@@ -205,6 +262,7 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
     setSignals([]);
     setIsConsensusMode(false);
     hasSaved.current = false;
+    pageContentRef.current = '';
 
     // Check cache first
     const cached = getCachedReport(url.trim());
@@ -424,7 +482,13 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
                 <p className="text-xs text-gray-400">{loadingLabel}</p>
               </div>
             )}
-            {geoScore !== null && scoreColor && <ScoreRing score={geoScore} color={scoreColor} />}
+            {geoScore !== null && scoreColor && (
+              <ScoreRing
+                score={geoScore}
+                color={scoreColor}
+                previousScore={priorHistory.length > 0 ? priorHistory[0].score : null}
+              />
+            )}
             {signals.length > 0 && (
               <div className="mt-5 pt-4 border-t border-gray-200 space-y-3">
                 {signals.map((s) => (
@@ -464,7 +528,13 @@ export function AnalyzeTab({ apiKey, provider, model, isReady, consensusKeys }: 
         output={activeOutput}
         isStreaming={isLoading && !isFetching}
         label={isConsensusMode ? '🔀 Multi-Model Consensus Report' : 'GEO Analysis Report'}
+        url={url.trim()}
+        geoScore={geoScore}
       />
+
+      {geoScore !== null && signals.length > 0 && !isLoading && (
+        <SeoComparison geoScore={geoScore} signals={signals} />
+      )}
     </div>
   );
 }

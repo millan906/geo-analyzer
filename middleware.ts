@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { auth } from '@/auth';
 
 // In-memory rate limiter — resets on server restart.
 // For production, replace with Redis/Upstash for persistence across instances.
@@ -16,8 +17,18 @@ function getClientIp(request: NextRequest): string {
   );
 }
 
-export function middleware(request: NextRequest) {
-  if (request.nextUrl.pathname.startsWith('/api/analyze')) {
+export default auth(function middleware(request: NextRequest) {
+  // Protect server-side persistence routes
+  const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith('/api/reports') || pathname.startsWith('/api/history')) {
+    // @ts-expect-error auth injects auth property
+    if (!request.auth) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
+  // Rate limit analyze endpoint
+  if (pathname.startsWith('/api/analyze')) {
     const ip = getClientIp(request);
     const now = Date.now();
     const record = rateLimit.get(ip);
@@ -39,8 +50,8 @@ export function middleware(request: NextRequest) {
   }
 
   return NextResponse.next();
-}
+});
 
 export const config = {
-  matcher: '/api/:path*',
+  matcher: ['/api/:path*', '/login'],
 };

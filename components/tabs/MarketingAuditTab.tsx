@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useStream } from '@/lib/hooks/useStream';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
+import { PROVIDERS, type ProviderId } from '@/lib/providers';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { StreamingOutput } from '@/components/ui/StreamingOutput';
 
@@ -10,10 +11,10 @@ interface MarketingAuditTabProps {
   apiKey: string;
   provider: string;
   model: string;
+  url: string;
 }
 
-export function MarketingAuditTab({ apiKey, provider, model }: MarketingAuditTabProps) {
-  const [url, setUrl] = useState('');
+export function MarketingAuditTab({ apiKey, provider, model, url }: MarketingAuditTabProps) {
   const [validationError, setValidationError] = useState('');
   const [isFetching, setIsFetching] = useState(false);
 
@@ -25,7 +26,7 @@ export function MarketingAuditTab({ apiKey, provider, model }: MarketingAuditTab
       return;
     }
     if (!url.trim()) {
-      setValidationError('Please enter a URL.');
+      setValidationError('No URL found — run a GEO analysis first in the Analyze tab.');
       return;
     }
 
@@ -55,7 +56,6 @@ export function MarketingAuditTab({ apiKey, provider, model }: MarketingAuditTab
   const handleReset = () => {
     reset();
     setValidationError('');
-    setUrl('');
   };
 
   const isLoading = isFetching || isStreaming;
@@ -68,8 +68,9 @@ export function MarketingAuditTab({ apiKey, provider, model }: MarketingAuditTab
       <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
         <p className="text-sm font-semibold text-indigo-900 mb-1">Marketing Audit + AI Ranking</p>
         <p className="text-xs text-indigo-700 mb-3">
-          Enter any URL — Claude audits it across 6 marketing dimensions and estimates how it ranks
-          in AI search results vs. competitors. Includes a prioritized improvement roadmap.
+          Enter any URL — {PROVIDERS[provider as ProviderId]?.name ?? 'AI'} audits it across 6
+          marketing dimensions and estimates how it ranks in AI search results vs. competitors.
+          Includes a prioritized improvement roadmap.
         </p>
         <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
           {[
@@ -91,23 +92,12 @@ export function MarketingAuditTab({ apiKey, provider, model }: MarketingAuditTab
         </div>
       </div>
 
-      {/* URL input */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-          Page URL to Audit
-        </label>
-        <input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleAudit()}
-          placeholder="https://yoursite.com — or any competitor's page"
-          className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-        />
-        <p className="mt-1 text-xs text-gray-400">
-          Works on any public page — your site, a competitor, or a prospect's site.
-        </p>
-      </div>
+      {url && (
+        <div className="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 text-sm text-indigo-700 font-medium truncate">
+          <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" />
+          {url}
+        </div>
+      )}
 
       <div className="flex items-center justify-between">
         {(output || isLoading) && !isLoading && (
