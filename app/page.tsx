@@ -7,6 +7,7 @@ import { SchemaTab } from '@/components/tabs/SchemaTab';
 import { RewriteTab } from '@/components/tabs/RewriteTab';
 import { CompetitorTab } from '@/components/tabs/CompetitorTab';
 import { MarketingAuditTab } from '@/components/tabs/MarketingAuditTab';
+import { HistoryTab } from '@/components/tabs/HistoryTab';
 import { PROVIDERS, type ProviderId } from '@/lib/providers';
 import { UserMenu } from '@/components/ui/UserMenu';
 import { ConsentModal } from '@/components/ui/ConsentModal';
@@ -266,6 +267,7 @@ export default function GeoAnalyzer() {
         {activeTab === 'rewrite' && <RewriteTab {...tabProps} url={sharedUrl} />}
         {activeTab === 'competitor' && <CompetitorTab {...tabProps} />}
         {activeTab === 'audit' && <MarketingAuditTab {...tabProps} url={sharedUrl} />}
+        {activeTab === 'history' && <HistoryTab />}
       </div>
     </div>
   );

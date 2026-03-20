@@ -1,6 +1,6 @@
 'use client';
 
-export type Tab = 'analyze' | 'schema' | 'rewrite' | 'competitor' | 'audit';
+export type Tab = 'analyze' | 'schema' | 'rewrite' | 'competitor' | 'audit' | 'history';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'analyze', label: 'GEO Analyzer', icon: '✦' },
@@ -8,6 +8,7 @@ const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'rewrite', label: 'Content Rewriter', icon: '↺' },
   { id: 'competitor', label: 'Competitor Gap', icon: '⚡' },
   { id: 'audit', label: 'Marketing Audit', icon: '◈' },
+  { id: 'history', label: 'History', icon: '🕒' },
 ];
 
 interface TabNavProps {
