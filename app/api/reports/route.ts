@@ -11,6 +11,7 @@ export async function GET() {
     .from('reports')
     .select('*')
     .eq('user_id', session.user.id)
+    .eq('deleted', false)
     .order('created_at', { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -86,7 +87,7 @@ export async function DELETE(request: NextRequest) {
   const supabase = getSupabaseServerClient();
   const { error } = await supabase
     .from('reports')
-    .delete()
+    .update({ deleted: true })
     .eq('id', id)
     .eq('user_id', session.user.id);
 
