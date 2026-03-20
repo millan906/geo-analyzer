@@ -76,17 +76,16 @@ export function ReportGate({ reportText, geoScore, url, onUnlocked }: ReportGate
     );
   }
 
-  // Not signed in — gate
+  // Not signed in — force sign in only
   return (
     <div className="mt-4 bg-white border-2 border-indigo-200 rounded-xl p-5 text-center space-y-3">
       <div className="text-2xl">🔒</div>
       <div>
-        <p className="font-bold text-gray-900 text-sm">Your report is ready</p>
+        <p className="font-bold text-gray-900 text-sm">Sign in to email this report</p>
         <p className="text-xs text-gray-500 mt-1">
-          Sign in or enter your email to receive the full report.
+          Create a free account to save and email your GEO reports.
         </p>
       </div>
-
       <button
         onClick={handleSignIn}
         className="inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-6 rounded-xl text-sm transition-colors"
@@ -111,30 +110,6 @@ export function ReportGate({ reportText, geoScore, url, onUnlocked }: ReportGate
         </svg>
         Sign in with Google — it's free
       </button>
-
-      <p className="text-[11px] text-gray-400">Or enter your email to receive the report:</p>
-
-      <div className="flex justify-center">
-        <div className="flex gap-2 w-72">
-          <input
-            type="email"
-            value={emailInput}
-            onChange={(e) => setEmailInput(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleEmailReport()}
-            placeholder="your@email.com"
-            className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          />
-          <button
-            onClick={() => handleEmailReport()}
-            disabled={sending || sent}
-            className="text-xs font-medium bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-3 py-2 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {sent ? '✓ Sent!' : sending ? '...' : 'Send'}
-          </button>
-        </div>
-      </div>
-      {emailError && <p className="text-xs text-red-500">{emailError}</p>}
-      {sent && <p className="text-xs text-green-600 font-medium">Report sent! Check your inbox.</p>}
     </div>
   );
 }
