@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 function parseSection(text: string, heading: string): string {
   const regex = new RegExp(`${heading}[:\\s]*([\\s\\S]*?)(?=\\n[A-Z]{3,}[\\s\\n]|$)`, 'i');
   const match = text.match(regex);
@@ -44,6 +42,7 @@ function formatQuickWins(reportText: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const { to, reportText, geoScore, url } = await request.json();
 
   if (!to || !reportText) {
