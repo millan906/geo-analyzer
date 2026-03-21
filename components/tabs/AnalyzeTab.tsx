@@ -4,22 +4,33 @@ import { useState, useEffect, useRef } from 'react';
 import {
   parseGeoScore,
   parseSignals,
+  parseAiAnswerPreview,
   getScoreStatus,
   getScoreColor,
   type Signal,
+  type AiAnswerPreview,
 } from '@/lib/parse-geo';
+import {
+  parseAuditScore,
+  parseAuditSignals,
+  getAuditStatus,
+  getAuditColor,
+  getSeoQuickFixes,
+  type AuditSignal,
+} from '@/lib/parse-seo';
 import { useStream } from '@/lib/hooks/useStream';
 import { ErrorBanner } from '@/components/ui/ErrorBanner';
 import { SubmitButton } from '@/components/ui/SubmitButton';
 import { StreamingOutput } from '@/components/ui/StreamingOutput';
 import { saveAnalysis, getUrlHistory, type HistoryEntry } from '@/lib/history';
-import { SeoComparison } from '@/components/ui/SeoComparison';
+import { fetchPageContent } from '@/lib/fetch-page';
 import { getTrainingConsent } from '@/components/ui/ConsentModal';
 import {
   getCachedReport,
   setCachedReport,
   bustCache,
   cacheAgeLabel,
+  cacheKey,
   type CachedReport,
 } from '@/lib/analysis-cache';
 
@@ -28,6 +39,7 @@ const COLOR_CLASSES = {
     text: 'text-green-600',
     bg: 'bg-green-50',
     border: 'border-green-200',
+    badgeBorder: 'border-green-400',
     bar: 'bg-green-500',
     badge: 'bg-green-100 text-green-800',
   },
@@ -35,6 +47,7 @@ const COLOR_CLASSES = {
     text: 'text-yellow-600',
     bg: 'bg-yellow-50',
     border: 'border-yellow-200',
+    badgeBorder: 'border-yellow-400',
     bar: 'bg-yellow-500',
     badge: 'bg-yellow-100 text-yellow-800',
   },
@@ -42,10 +55,37 @@ const COLOR_CLASSES = {
     text: 'text-red-600',
     bg: 'bg-red-50',
     border: 'border-red-200',
+    badgeBorder: 'border-red-400',
     bar: 'bg-red-500',
     badge: 'bg-red-100 text-red-800',
   },
 } as const;
+
+// Fixed signal schemas — defines the canonical order, names, and max scores.
+// The breakdown always renders all rows; parsed AI data fills in scores/findings.
+const GEO_SIGNAL_SCHEMA = [
+  { name: 'Citability', maxScore: 25 },
+  { name: 'Entity Clarity', maxScore: 20 },
+  { name: 'Factual Density', maxScore: 20 },
+  { name: 'Format Quality', maxScore: 15 },
+  { name: 'Topical Authority', maxScore: 10 },
+  { name: 'Schema Health', maxScore: 10 },
+] as const;
+
+const SEO_SIGNAL_SCHEMA = [
+  { name: 'Title & Meta', maxScore: 20 },
+  { name: 'Heading Structure', maxScore: 20 },
+  { name: 'Content Depth', maxScore: 20 },
+  { name: 'Social Proof', maxScore: 15 },
+  { name: 'Brand Clarity', maxScore: 15 },
+  { name: 'CTA & Conversion', maxScore: 10 },
+] as const;
+
+function getScoreSubtitle(score: number): string {
+  if (score >= 80) return 'Your content is well-optimized for AI discovery.';
+  if (score >= 65) return 'Approaching citability — a few targeted fixes will get you there.';
+  return 'Significant improvements needed to appear in AI answers.';
+}
 
 function ScoreDelta({ current, previous }: { current: number; previous: number }) {
   const delta = current - previous;
@@ -75,36 +115,12 @@ function ScoreRing({
   const c = COLOR_CLASSES[color];
   return (
     <div className="text-center">
-      <div className={`text-7xl font-black tabular-nums ${c.text}`}>{score}</div>
+      <div className={`text-5xl font-black tabular-nums ${c.text}`}>{score}</div>
       <div className="text-sm text-gray-400 font-medium -mt-1">/ 100</div>
       <div className={`mt-3 inline-block px-3 py-1 rounded-full text-xs font-bold ${c.badge}`}>
         {getScoreStatus(score)}
       </div>
       {previousScore != null && <ScoreDelta current={score} previous={previousScore} />}
-    </div>
-  );
-}
-
-function SignalBar({ signal }: { signal: Signal }) {
-  const pct = Math.round((signal.score / signal.maxScore) * 100);
-  const color = signal.emoji === '🟢' ? 'green' : signal.emoji === '🟡' ? 'yellow' : 'red';
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-gray-700 font-medium flex items-center gap-1">
-          <span>{signal.emoji}</span>
-          <span>{signal.name}</span>
-        </span>
-        <span className="text-xs text-gray-400 tabular-nums">
-          {signal.score}/{signal.maxScore}
-        </span>
-      </div>
-      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-700 ${COLOR_CLASSES[color].bar}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
     </div>
   );
 }
@@ -124,6 +140,7 @@ interface AnalyzeTabProps {
   consensusKeys?: ConsensusKeys;
   url: string;
   onUrlChange: (url: string) => void;
+  onTabChange?: (tab: string) => void;
 }
 
 export function AnalyzeTab({
@@ -134,11 +151,16 @@ export function AnalyzeTab({
   consensusKeys,
   url,
   onUrlChange,
+  onTabChange,
 }: AnalyzeTabProps) {
   const setUrl = onUrlChange;
   const [targetQuery, setTargetQuery] = useState('');
   const [geoScore, setGeoScore] = useState<number | null>(null);
   const [signals, setSignals] = useState<Signal[]>([]);
+  const [aiPreview, setAiPreview] = useState<AiAnswerPreview | null>(null);
+  const [seoScore, setSeoScore] = useState<number | null>(null);
+  const [seoSignals, setSeoSignals] = useState<AuditSignal[]>([]);
+  const [seoFixes, setSeoFixes] = useState<string[]>([]);
   const [validationError, setValidationError] = useState('');
   const [isFetching, setIsFetching] = useState(false);
   const [priorHistory, setPriorHistory] = useState<HistoryEntry[]>([]);
@@ -151,6 +173,7 @@ export function AnalyzeTab({
     output: analysis,
     isStreaming: isAnalyzing,
     error: streamError,
+    timing: analyzeTiming,
     run,
     reset,
   } = useStream('/api/analyze');
@@ -169,10 +192,18 @@ export function AnalyzeTab({
 
   useEffect(() => {
     if (!activeOutput) return;
-    const score = parseGeoScore(activeOutput);
-    if (score !== null) setGeoScore(score);
-    const parsed = parseSignals(activeOutput);
-    if (parsed.length > 0) setSignals(parsed);
+    const geo = parseGeoScore(activeOutput);
+    if (geo !== null) setGeoScore(geo);
+    const geoSigs = parseSignals(activeOutput);
+    if (geoSigs.length > 0) setSignals(geoSigs);
+    const seo = parseAuditScore(activeOutput);
+    if (seo !== null) setSeoScore(seo);
+    const seoSigs = parseAuditSignals(activeOutput);
+    if (seoSigs.length > 0) setSeoSignals(seoSigs);
+    const fixes = getSeoQuickFixes(activeOutput);
+    if (fixes.length > 0) setSeoFixes(fixes);
+    const preview = parseAiAnswerPreview(activeOutput);
+    if (preview) setAiPreview(preview);
   }, [activeOutput]);
 
   useEffect(() => {
@@ -195,7 +226,7 @@ export function AnalyzeTab({
       // Save full report to cache
       const reportText = isConsensusMode ? consensusAnalysis : analysis;
       if (reportText && url.trim()) {
-        setCachedReport(url.trim(), reportText, provider, model);
+        setCachedReport(cacheKey('analyze', url.trim()), reportText, provider, model);
       }
       // Save to server (training data) for signed-in users
       if (reportText && url.trim()) {
@@ -203,6 +234,7 @@ export function AnalyzeTab({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            type: 'analyze',
             url: url.trim(),
             targetQuery: targetQuery.trim() || 'Inferred',
             reportText,
@@ -211,6 +243,8 @@ export function AnalyzeTab({
             pageContent: pageContentRef.current,
             provider,
             model,
+            durationMs: analyzeTiming.durationMs,
+            timeToFirstTokenMs: analyzeTiming.timeToFirstTokenMs,
             consentTraining: getTrainingConsent(),
           }),
         }).catch(() => {}); // silent — user may not be signed in
@@ -219,19 +253,15 @@ export function AnalyzeTab({
     }
   }, [isAnalyzing, geoScore, signals]);
 
-  const fetchPageContent = async (): Promise<string | null> => {
-    const res = await fetch('/api/fetch-url', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url: url.trim() }),
-    });
-    const data = await res.json();
-    if (!res.ok || data.error) {
-      setValidationError(data.error || 'Failed to fetch page.');
+  const fetchPageText = async (): Promise<string | null> => {
+    try {
+      const { text } = await fetchPageContent(url);
+      pageContentRef.current = text;
+      return text;
+    } catch (err) {
+      setValidationError(err instanceof Error ? err.message : 'Failed to fetch page.');
       return null;
     }
-    pageContentRef.current = data.text as string;
-    return data.text as string;
   };
 
   const buildHistoryContext = () =>
@@ -260,12 +290,16 @@ export function AnalyzeTab({
     setValidationError('');
     setGeoScore(null);
     setSignals([]);
+    setSeoScore(null);
+    setSeoSignals([]);
+    setSeoFixes([]);
+    setAiPreview(null);
     setIsConsensusMode(false);
     hasSaved.current = false;
     pageContentRef.current = '';
 
     // Check cache first
-    const cached = getCachedReport(url.trim());
+    const cached = getCachedReport(cacheKey('analyze', url.trim()));
     if (cached) {
       setCachedReportState(cached);
       const score = parseGeoScore(cached.text);
@@ -279,7 +313,7 @@ export function AnalyzeTab({
     setIsFetching(true);
 
     try {
-      const text = await fetchPageContent();
+      const text = await fetchPageText();
       if (!text) return;
       setIsFetching(false);
 
@@ -306,12 +340,13 @@ export function AnalyzeTab({
     setValidationError('');
     setGeoScore(null);
     setSignals([]);
+    setAiPreview(null);
     setIsFetching(true);
     setIsConsensusMode(true);
     hasSaved.current = false;
 
     try {
-      const text = await fetchPageContent();
+      const text = await fetchPageText();
       if (!text) return;
       setIsFetching(false);
 
@@ -335,6 +370,10 @@ export function AnalyzeTab({
     resetConsensus();
     setGeoScore(null);
     setSignals([]);
+    setSeoScore(null);
+    setSeoSignals([]);
+    setSeoFixes([]);
+    setAiPreview(null);
     setValidationError('');
     setUrl('');
     setTargetQuery('');
@@ -343,7 +382,7 @@ export function AnalyzeTab({
   };
 
   const handleRefresh = () => {
-    bustCache(url.trim());
+    bustCache(cacheKey('analyze', url.trim()));
     setCachedReportState(null);
     setGeoScore(null);
     setSignals([]);
@@ -362,178 +401,361 @@ export function AnalyzeTab({
 
   return (
     <div className="space-y-5">
-      <div className="flex gap-5 items-start">
-        {/* Left: Inputs */}
-        <div className="flex-1 min-w-0 space-y-3">
+      {/* Input card */}
+      <div className="bg-white rounded-2xl p-5 space-y-4 shadow-card">
+        {/* Value prop badges */}
+        {!activeOutput && !isLoading && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-brand-purple/40 bg-brand-purple/5 text-xs font-semibold text-brand-purple">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-purple shrink-0" />
+              SEO gets you found on Google.
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-brand-cyan/40 bg-brand-cyan/5 text-xs font-semibold text-brand-cyan">
+              <span className="w-1.5 h-1.5 rounded-full bg-brand-cyan shrink-0" />
+              GEO gets you cited by AI.
+            </span>
+            <span className="text-xs text-gray-400">Enter a URL to measure both.</span>
+          </div>
+        )}
+
+        {/* Inputs + stacked action buttons */}
+        <div className="flex gap-3 items-start">
           {/* URL */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">Page URL</label>
+          <div className="flex-1">
             <input
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
               placeholder="https://yoursite.com/service-page"
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
             />
-            {priorHistory.length > 0 && (
-              <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                <span>
-                  Last analyzed {new Date(priorHistory[0].analyzedAt).toLocaleDateString()}:
-                </span>
-                <span
-                  className={`font-bold ${priorHistory[0].score >= 80 ? 'text-green-600' : priorHistory[0].score >= 50 ? 'text-yellow-600' : 'text-red-600'}`}
-                >
-                  {priorHistory[0].score}/100
-                </span>
-                {priorHistory.length > 1 && (
-                  <span className="text-gray-400">(was {priorHistory[1].score} before that)</span>
-                )}
-              </div>
-            )}
           </div>
-
-          {/* Target query — optional */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Target AI Query
-              <span className="ml-1.5 font-normal text-gray-400">
-                (optional — we'll infer it if blank)
-              </span>
-            </label>
+          {/* Target query */}
+          <div className="w-64 shrink-0">
             <input
               type="text"
               value={targetQuery}
               onChange={(e) => setTargetQuery(e.target.value)}
-              placeholder={`e.g. "best dental clinic in Cebu City"`}
-              className="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Target AI query (optional)"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-purple focus:border-transparent"
             />
           </div>
-
-          <div className="flex items-center justify-between gap-2 pt-1 flex-wrap">
-            {(activeOutput || isLoading) && !isLoading && (
+          {/* Actions — stacked vertically */}
+          <div className="flex flex-col gap-2 shrink-0">
+            <SubmitButton
+              isLoading={isLoading}
+              label="✦ Analyze"
+              loadingLabel={loadingLabel}
+              onClick={handleAnalyze}
+            />
+            {hasBothFreeKeys && (
               <button
-                onClick={handleReset}
-                className="text-xs text-gray-400 hover:text-gray-600 border border-gray-200 px-3 py-2 rounded-xl"
+                onClick={handleConsensus}
+                disabled={isLoading}
+                title="Runs Gemini + Llama simultaneously for a bias-averaged score"
+                className={`text-xs font-semibold px-4 py-2 rounded-xl border transition-all ${
+                  isLoading
+                    ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
+                    : 'bg-white text-gray-700 border-gray-300 hover:border-brand-purple hover:text-brand-purple'
+                }`}
               >
+                ⊞ 2-Model Check
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Meta row — cache info, history, reset */}
+        {(priorHistory.length > 0 || cachedReport || activeOutput) && (
+          <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-gray-100">
+            <div className="flex items-center gap-3">
+              {priorHistory.length > 0 && (
+                <span className="text-xs text-gray-400">
+                  Last scan:{' '}
+                  <span
+                    className={`font-bold ${priorHistory[0].score >= 80 ? 'text-green-600' : priorHistory[0].score >= 65 ? 'text-yellow-600' : 'text-red-600'}`}
+                  >
+                    {priorHistory[0].score}/100
+                  </span>
+                  {priorHistory.length > 1 && (
+                    <span className="text-gray-300 ml-1">(was {priorHistory[1].score})</span>
+                  )}
+                </span>
+              )}
+              {cachedReport && (
+                <span className="flex items-center gap-1.5 text-xs text-blue-600">
+                  <span>⚡</span>
+                  <span>
+                    Cached · {cacheAgeLabel(cachedReport.cachedAt)} · via {cachedReport.provider}
+                  </span>
+                  <button onClick={handleRefresh} className="underline ml-1">
+                    Refresh
+                  </button>
+                </span>
+              )}
+            </div>
+            {activeOutput && !isLoading && (
+              <button onClick={handleReset} className="text-xs text-gray-400 hover:text-gray-600">
                 ↺ Reset
               </button>
             )}
-            <div className="ml-auto flex items-center gap-2 flex-wrap">
-              {hasBothFreeKeys && (
-                <button
-                  onClick={handleConsensus}
-                  disabled={isLoading}
-                  className={`text-xs font-medium px-4 py-2.5 rounded-xl border transition-all ${
-                    isLoading
-                      ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed'
-                      : 'bg-violet-50 text-violet-700 border-violet-200 hover:bg-violet-100'
-                  }`}
-                  title="Run on Gemini + Llama in parallel for a consensus score"
-                >
-                  🔀 Consensus (2 models)
-                </button>
-              )}
-              <SubmitButton
-                isLoading={isLoading}
-                label="✦ Analyze Page"
-                loadingLabel={loadingLabel}
-                onClick={handleAnalyze}
-              />
-            </div>
           </div>
+        )}
 
-          {cachedReport && (
-            <div className="flex items-center gap-2 text-xs bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
-              <span className="text-blue-500">⚡</span>
-              <span className="text-blue-700 font-medium">Cached result</span>
-              <span className="text-blue-500">·</span>
-              <span className="text-blue-600">{cacheAgeLabel(cachedReport.cachedAt)}</span>
-              <span className="text-blue-400 ml-auto">via {cachedReport.provider}</span>
-              <button
-                onClick={handleRefresh}
-                className="ml-2 text-blue-600 hover:text-blue-800 underline font-medium"
-              >
-                Refresh
-              </button>
-            </div>
-          )}
-
-          <ErrorBanner error={error} />
-        </div>
-
-        {/* Right: Score Panel */}
-        <div className="w-64 shrink-0 space-y-4">
-          <div
-            className={`rounded-xl border-2 p-5 transition-colors duration-500 ${scoreColor ? `${COLOR_CLASSES[scoreColor].bg} ${COLOR_CLASSES[scoreColor].border}` : 'bg-white border-gray-200'}`}
-          >
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-4">
-              GEO Score
-            </p>
-            {geoScore === null && !isLoading && (
-              <div className="text-center py-6">
-                <div className="text-4xl text-gray-200 mb-2">◎</div>
-                <p className="text-xs text-gray-400">Enter a URL and click Analyze</p>
-              </div>
-            )}
-            {geoScore === null && isLoading && (
-              <div className="text-center py-6">
-                <div className="text-3xl text-indigo-300 animate-pulse mb-2">◎</div>
-                <p className="text-xs text-gray-400">{loadingLabel}</p>
-              </div>
-            )}
-            {geoScore !== null && scoreColor && (
-              <ScoreRing
-                score={geoScore}
-                color={scoreColor}
-                previousScore={priorHistory.length > 0 ? priorHistory[0].score : null}
-              />
-            )}
-            {signals.length > 0 && (
-              <div className="mt-5 pt-4 border-t border-gray-200 space-y-3">
-                {signals.map((s) => (
-                  <SignalBar key={s.name} signal={s} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-white border border-gray-200 rounded-xl p-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">
-              What is GEO?
-            </p>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              Generative Engine Optimization makes your content more likely to be cited by AI
-              systems like ChatGPT, Perplexity, and Google AI Overviews.
-            </p>
-            <div className="mt-3 space-y-1 text-xs text-gray-500">
-              <div className="flex items-center gap-1.5">
-                <span className="text-green-500">●</span>
-                <span>80–100: GEO Ready</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-yellow-500">●</span>
-                <span>50–79: Needs Work</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-red-500">●</span>
-                <span>0–49: Not Optimized</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <ErrorBanner error={error} />
       </div>
 
-      <StreamingOutput
-        output={activeOutput}
-        isStreaming={isLoading && !isFetching}
-        label={isConsensusMode ? '🔀 Multi-Model Consensus Report' : 'GEO Analysis Report'}
-        url={url.trim()}
-        geoScore={geoScore}
-      />
+      {/* Loading state */}
+      {isLoading && seoScore === null && (
+        <div className="flex items-center gap-3 bg-white rounded-2xl shadow-card px-5 py-4">
+          <div className="text-2xl text-brand-purple animate-pulse">◎</div>
+          <div>
+            <p className="text-sm font-medium text-gray-700">{loadingLabel}</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Analyzing SEO foundation first, then GEO layer…
+            </p>
+          </div>
+        </div>
+      )}
 
-      {geoScore !== null && signals.length > 0 && !isLoading && (
-        <SeoComparison geoScore={geoScore} signals={signals} />
+      {/* GEO Score */}
+      {(geoScore !== null || (isLoading && !isFetching)) && (
+        <div className="px-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">
+            GEO Score
+          </p>
+          <div className="flex items-start justify-between">
+            <div className="flex items-baseline gap-3">
+              <span className="text-[4rem] font-black tabular-nums leading-none text-gray-900">
+                {geoScore ?? <span className="text-gray-200 animate-pulse">…</span>}
+              </span>
+              <span className="text-2xl text-gray-400 font-medium">/100</span>
+              {priorHistory.length > 0 && geoScore !== null && (
+                <ScoreDelta current={geoScore} previous={priorHistory[0].score} />
+              )}
+            </div>
+            {geoScore !== null && scoreColor && (
+              <div className="text-right">
+                <span
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border ${COLOR_CLASSES[scoreColor].badgeBorder} bg-white ${COLOR_CLASSES[scoreColor].text}`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${COLOR_CLASSES[scoreColor].bar}`} />
+                  {getScoreStatus(geoScore)}
+                </span>
+                <p className="text-xs text-gray-400 mt-2 max-w-[200px] ml-auto">
+                  {getScoreSubtitle(geoScore)}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* GEO Signal Breakdown — always renders all 6 rows once GEO score is available */}
+      {geoScore !== null && (
+        <div className="space-y-4">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+            GEO Signal Breakdown
+          </p>
+          <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+            <div className="grid grid-cols-[160px_72px_1fr] px-6 py-3 border-b border-gray-100">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                Signal
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 text-center">
+                Score
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 pl-4">
+                Finding
+              </span>
+            </div>
+            {GEO_SIGNAL_SCHEMA.map((def, idx) => {
+              const parsed = signals.find((s) => s.name === def.name);
+              const c = parsed
+                ? COLOR_CLASSES[
+                    parsed.emoji === 'pass' ? 'green' : parsed.emoji === 'warn' ? 'yellow' : 'red'
+                  ]
+                : null;
+              return (
+                <div
+                  key={def.name}
+                  className="grid grid-cols-[160px_72px_1fr] px-6 py-4 border-b border-gray-100 last:border-0 items-center opacity-0 animate-row-in hover:bg-brand-lavender/40 transition-colors cursor-default"
+                  style={{ animationDelay: `${idx * 0.07}s` }}
+                >
+                  <span className="text-sm font-bold text-gray-900">{def.name}</span>
+                  <div className="text-center">
+                    {parsed && c ? (
+                      <>
+                        <span className={`text-2xl font-black tabular-nums leading-none ${c.text}`}>
+                          {parsed.score}
+                        </span>
+                        <span className="block text-xs text-gray-400 mt-0.5">/{def.maxScore}</span>
+                      </>
+                    ) : (
+                      <span className="text-gray-300 text-sm tabular-nums">—/{def.maxScore}</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 leading-relaxed pl-4">
+                    {parsed?.finding ?? <span className="text-gray-300">Analyzing…</span>}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* SEO Score */}
+      {seoScore !== null && (
+        <div className="px-1">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-4">
+            SEO Score
+          </p>
+          <div className="flex items-start justify-between">
+            <div className="flex items-baseline gap-3">
+              <span className="text-[4rem] font-black tabular-nums leading-none text-gray-900">
+                {seoScore}
+              </span>
+              <span className="text-2xl text-gray-400 font-medium">/100</span>
+            </div>
+            {(() => {
+              const seoColor = getAuditColor(seoScore);
+              const c = COLOR_CLASSES[seoColor];
+              return (
+                <div className="text-right">
+                  <span
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold border ${c.badgeBorder} bg-white ${c.text}`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${c.bar}`} />
+                    {getAuditStatus(seoScore)}
+                  </span>
+                  <p className="text-xs text-gray-400 mt-2 max-w-[200px] ml-auto">
+                    {seoScore >= 75
+                      ? 'Your SEO foundation is solid.'
+                      : seoScore >= 45
+                        ? 'Fix these signals to strengthen your base.'
+                        : 'Core SEO issues need addressing first.'}
+                  </p>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
+      {/* SEO Signal Breakdown — always renders all 6 rows once SEO score is available */}
+      {seoScore !== null && (
+        <div className="space-y-4">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+            SEO Signal Breakdown
+          </p>
+          <div className="bg-white rounded-2xl shadow-card overflow-hidden">
+            <div className="grid grid-cols-[160px_72px_1fr_1fr] px-6 py-3 border-b border-gray-100">
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                Signal
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 text-center">
+                Score
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 pl-4">
+                Finding
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 pl-4">
+                Quick Fix
+              </span>
+            </div>
+            {SEO_SIGNAL_SCHEMA.map((def, idx) => {
+              const parsed = seoSignals.find((s) => s.name === def.name);
+              const c = parsed
+                ? COLOR_CLASSES[
+                    parsed.emoji === 'pass' ? 'green' : parsed.emoji === 'warn' ? 'yellow' : 'red'
+                  ]
+                : null;
+              const fix = seoFixes[idx];
+              return (
+                <div
+                  key={def.name}
+                  className="grid grid-cols-[160px_72px_1fr_1fr] px-6 py-4 border-b border-gray-100 last:border-0 items-center opacity-0 animate-row-in hover:bg-brand-lavender/40 transition-colors cursor-default"
+                  style={{ animationDelay: `${idx * 0.07}s` }}
+                >
+                  <span className="text-sm font-bold text-gray-900">{def.name}</span>
+                  <div className="text-center">
+                    {parsed && c ? (
+                      <>
+                        <span className={`text-2xl font-black tabular-nums leading-none ${c.text}`}>
+                          {parsed.score}
+                        </span>
+                        <span className="block text-xs text-gray-400 mt-0.5">/{def.maxScore}</span>
+                      </>
+                    ) : (
+                      <span className="text-gray-300 text-sm tabular-nums">—/{def.maxScore}</span>
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 leading-relaxed pl-4">
+                    {parsed?.finding ?? <span className="text-gray-300">Analyzing…</span>}
+                  </p>
+                  <p className="text-sm text-gray-500 leading-relaxed pl-4">
+                    {fix ?? <span className="text-gray-300">Analyzing…</span>}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* AI Answer Preview card */}
+      {aiPreview && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-gray-100 bg-gray-50/60 flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400">
+              {isConsensusMode ? '🔀 2-Model Consensus' : 'Preview of Analysis Report'}
+            </p>
+            <button
+              onClick={() => onTabChange?.('audit')}
+              className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium"
+            >
+              Full report → Marketing Strategy
+            </button>
+          </div>
+          <div className="p-5 space-y-4">
+            {aiPreview.query && (
+              <p className="text-xs text-gray-500">
+                If an AI was asked{' '}
+                <span className="font-semibold text-gray-700">"{aiPreview.query}"</span> and read
+                this page, it would likely say:
+              </p>
+            )}
+            {aiPreview.answer && (
+              <blockquote className="border-l-4 border-indigo-300 pl-4 text-sm text-gray-700 leading-relaxed italic">
+                "{aiPreview.answer}"
+              </blockquote>
+            )}
+            {aiPreview.missing && (
+              <div className="flex gap-2.5 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <span className="text-amber-500 shrink-0 mt-0.5">⚠</span>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-amber-600 mb-1">
+                    What's missing
+                  </p>
+                  <p className="text-xs text-amber-800 leading-snug">{aiPreview.missing}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Streaming placeholder while preview hasn't parsed yet */}
+      {activeOutput && !aiPreview && (
+        <StreamingOutput
+          output={activeOutput}
+          isStreaming={isLoading && !isFetching}
+          label={isConsensusMode ? '🔀 2-Model Consensus' : 'Full Analysis Report'}
+          url={url.trim()}
+          geoScore={geoScore}
+        />
       )}
     </div>
   );

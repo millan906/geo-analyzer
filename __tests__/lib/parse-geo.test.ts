@@ -3,9 +3,21 @@ import {
   parseSignals,
   getScoreStatus,
   getScoreColor,
+  parseAiAnswerPreview,
 } from '@/lib/parse-geo';
 
-const SAMPLE_SIGNALS = `
+// ── Fixtures ────────────────────────────────────────────────────────────────
+
+const BRACKET_FORMAT = `
+[PASS] Citability        [20/25] — Opens with a direct answer about services
+[WARN] Entity Clarity    [13/20] — Business name missing from first paragraph
+[FAIL] Factual Density   [8/20] — No specific numbers or credentials mentioned
+[WARN] Format Quality    [10/15] — Good structure but missing FAQ section
+[PASS] Topical Authority [8/10] — Comprehensive coverage of the topic
+[FAIL] Schema Health     [0/10] — No structured data detected in content
+`;
+
+const EMOJI_FORMAT = `
 🟢 Citability        [20/25] — Opens with a direct answer about services
 🟡 Entity Clarity    [13/20] — Business name missing from first paragraph
 🔴 Factual Density   [8/20] — No specific numbers or credentials mentioned
@@ -13,6 +25,31 @@ const SAMPLE_SIGNALS = `
 🟢 Topical Authority [8/10] — Comprehensive coverage of the topic
 🔴 Schema Health     [0/10] — No structured data detected in content
 `;
+
+const FULL_REPORT = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+GEO SCORE: 59 / 100  [WARN] Approaching Citability
+Target AI Query: "best dental clinic in Cebu"
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SIGNAL BREAKDOWN
+[PASS] Citability        [20/25] — Strong BLUF intro with direct answer
+[WARN] Entity Clarity    [13/20] — Business name missing from opening paragraph
+[FAIL] Factual Density   [8/20] — No certifications, stats, or years mentioned
+[WARN] Format Quality    [10/15] — Good H2 structure but no FAQ block
+[PASS] Topical Authority [8/10] — Covers topic well
+[FAIL] Schema Health     [0/10] — No JSON-LD detected
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AI ANSWER PREVIEW
+If an AI was asked "best dental clinic in Cebu" and read this page, it would likely say:
+"Smith Dental provides professional dental services in Cebu City, offering cleanings and orthodontics."
+
+What's missing: Specific years in business, certifications, and patient review numbers would strengthen the answer.
+`;
+
+// ── parseGeoScore ────────────────────────────────────────────────────────────
 
 describe('parseGeoScore', () => {
   it('parses a valid score', () => {
@@ -23,20 +60,11 @@ describe('parseGeoScore', () => {
     expect(parseGeoScore('GEO SCORE:  85  /  100')).toBe(85);
   });
 
-  it('parses score 0', () => {
+  it('parses boundary scores', () => {
     expect(parseGeoScore('GEO SCORE: 0 / 100')).toBe(0);
-  });
-
-  it('parses score 100', () => {
     expect(parseGeoScore('GEO SCORE: 100 / 100')).toBe(100);
-  });
-
-  it('parses score 80 (green boundary)', () => {
     expect(parseGeoScore('GEO SCORE: 80 / 100')).toBe(80);
-  });
-
-  it('parses score 50 (yellow boundary)', () => {
-    expect(parseGeoScore('GEO SCORE: 50 / 100')).toBe(50);
+    expect(parseGeoScore('GEO SCORE: 65 / 100')).toBe(65);
   });
 
   it('returns null for empty string', () => {
@@ -48,30 +76,33 @@ describe('parseGeoScore', () => {
   });
 
   it('finds score embedded in a larger report', () => {
-    const report = `━━━━━━━━━━\nGEO SCORE: 63 / 100  🟡 Needs Work\nTarget AI Query: "test"\n━━━━━━━━━━`;
-    expect(parseGeoScore(report)).toBe(63);
+    expect(parseGeoScore(FULL_REPORT)).toBe(59);
   });
 });
+
+// ── getScoreStatus ────────────────────────────────────────────────────────────
 
 describe('getScoreStatus', () => {
   it('returns GEO Ready for 80+', () => {
-    expect(getScoreStatus(80)).toBe('🟢 GEO Ready');
-    expect(getScoreStatus(100)).toBe('🟢 GEO Ready');
-    expect(getScoreStatus(95)).toBe('🟢 GEO Ready');
+    expect(getScoreStatus(80)).toBe('GEO Ready');
+    expect(getScoreStatus(100)).toBe('GEO Ready');
+    expect(getScoreStatus(95)).toBe('GEO Ready');
   });
 
-  it('returns Needs Work for 50–79', () => {
-    expect(getScoreStatus(50)).toBe('🟡 Needs Work');
-    expect(getScoreStatus(79)).toBe('🟡 Needs Work');
-    expect(getScoreStatus(65)).toBe('🟡 Needs Work');
+  it('returns Approaching Citability for 65–79', () => {
+    expect(getScoreStatus(65)).toBe('Approaching Citability');
+    expect(getScoreStatus(79)).toBe('Approaching Citability');
+    expect(getScoreStatus(72)).toBe('Approaching Citability');
   });
 
-  it('returns Not Optimized for 0–49', () => {
-    expect(getScoreStatus(0)).toBe('🔴 Not Optimized');
-    expect(getScoreStatus(49)).toBe('🔴 Not Optimized');
-    expect(getScoreStatus(25)).toBe('🔴 Not Optimized');
+  it('returns Not Optimized for 0–64', () => {
+    expect(getScoreStatus(0)).toBe('Not Optimized');
+    expect(getScoreStatus(64)).toBe('Not Optimized');
+    expect(getScoreStatus(50)).toBe('Not Optimized');
   });
 });
+
+// ── getScoreColor ─────────────────────────────────────────────────────────────
 
 describe('getScoreColor', () => {
   it('returns green for 80+', () => {
@@ -79,36 +110,47 @@ describe('getScoreColor', () => {
     expect(getScoreColor(100)).toBe('green');
   });
 
-  it('returns yellow for 50–79', () => {
-    expect(getScoreColor(50)).toBe('yellow');
+  it('returns yellow for 65–79', () => {
+    expect(getScoreColor(65)).toBe('yellow');
     expect(getScoreColor(79)).toBe('yellow');
   });
 
-  it('returns red for 0–49', () => {
+  it('returns red for 0–64', () => {
     expect(getScoreColor(0)).toBe('red');
-    expect(getScoreColor(49)).toBe('red');
+    expect(getScoreColor(64)).toBe('red');
   });
 });
 
-describe('parseSignals', () => {
-  it('parses all 6 signals from a full report', () => {
-    const signals = parseSignals(SAMPLE_SIGNALS);
-    expect(signals).toHaveLength(6);
+// ── parseSignals ─────────────────────────────────────────────────────────────
+
+describe('parseSignals — [PASS/WARN/FAIL] format', () => {
+  it('parses all 6 signals', () => {
+    expect(parseSignals(BRACKET_FORMAT)).toHaveLength(6);
   });
 
-  it('correctly parses signal names', () => {
-    const signals = parseSignals(SAMPLE_SIGNALS);
-    const names = signals.map((s) => s.name);
-    expect(names).toContain('Citability');
-    expect(names).toContain('Entity Clarity');
-    expect(names).toContain('Factual Density');
-    expect(names).toContain('Format Quality');
-    expect(names).toContain('Topical Authority');
-    expect(names).toContain('Schema Health');
+  it('parses all signal names', () => {
+    const names = parseSignals(BRACKET_FORMAT).map((s) => s.name);
+    expect(names).toEqual(
+      expect.arrayContaining([
+        'Citability',
+        'Entity Clarity',
+        'Factual Density',
+        'Format Quality',
+        'Topical Authority',
+        'Schema Health',
+      ])
+    );
   });
 
-  it('correctly parses scores and maxScores', () => {
-    const signals = parseSignals(SAMPLE_SIGNALS);
+  it('maps [PASS] → pass, [WARN] → warn, [FAIL] → fail', () => {
+    const signals = parseSignals(BRACKET_FORMAT);
+    expect(signals.find((s) => s.name === 'Citability')!.emoji).toBe('pass');
+    expect(signals.find((s) => s.name === 'Entity Clarity')!.emoji).toBe('warn');
+    expect(signals.find((s) => s.name === 'Factual Density')!.emoji).toBe('fail');
+  });
+
+  it('parses scores correctly', () => {
+    const signals = parseSignals(BRACKET_FORMAT);
     const citability = signals.find((s) => s.name === 'Citability')!;
     expect(citability.score).toBe(20);
     expect(citability.maxScore).toBe(25);
@@ -118,24 +160,32 @@ describe('parseSignals', () => {
     expect(schema.maxScore).toBe(10);
   });
 
-  it('correctly parses emoji indicators', () => {
-    const signals = parseSignals(SAMPLE_SIGNALS);
-    const citability = signals.find((s) => s.name === 'Citability')!;
-    expect(citability.emoji).toBe('🟢');
-
-    const entity = signals.find((s) => s.name === 'Entity Clarity')!;
-    expect(entity.emoji).toBe('🟡');
-
-    const factual = signals.find((s) => s.name === 'Factual Density')!;
-    expect(factual.emoji).toBe('🔴');
-  });
-
-  it('correctly parses finding text', () => {
-    const signals = parseSignals(SAMPLE_SIGNALS);
+  it('parses finding text', () => {
+    const signals = parseSignals(BRACKET_FORMAT);
     const citability = signals.find((s) => s.name === 'Citability')!;
     expect(citability.finding).toBe('Opens with a direct answer about services');
   });
 
+  it('parses from a full realistic report', () => {
+    const signals = parseSignals(FULL_REPORT);
+    expect(signals).toHaveLength(6);
+  });
+});
+
+describe('parseSignals — legacy emoji format (fallback)', () => {
+  it('parses all 6 signals from emoji format', () => {
+    expect(parseSignals(EMOJI_FORMAT)).toHaveLength(6);
+  });
+
+  it('maps 🟢 → pass, 🟡 → warn, 🔴 → fail', () => {
+    const signals = parseSignals(EMOJI_FORMAT);
+    expect(signals.find((s) => s.name === 'Citability')!.emoji).toBe('pass');
+    expect(signals.find((s) => s.name === 'Entity Clarity')!.emoji).toBe('warn');
+    expect(signals.find((s) => s.name === 'Factual Density')!.emoji).toBe('fail');
+  });
+});
+
+describe('parseSignals — edge cases', () => {
   it('returns empty array for empty string', () => {
     expect(parseSignals('')).toEqual([]);
   });
@@ -144,9 +194,42 @@ describe('parseSignals', () => {
     expect(parseSignals('GEO SCORE: 72 / 100\nSome other text')).toEqual([]);
   });
 
-  it('parses partial signals (stream not complete)', () => {
-    const partial = `🟢 Citability        [20/25] — Opens with a direct answer\n🟡 Entity Clarity    [13/20] — Business name missing`;
-    const signals = parseSignals(partial);
-    expect(signals).toHaveLength(2);
+  it('ignores unknown signal names', () => {
+    const text = '[PASS] Unknown Signal [10/10] — some finding';
+    expect(parseSignals(text)).toEqual([]);
+  });
+
+  it('parses partial signals during streaming', () => {
+    const partial = `[PASS] Citability [20/25] — Direct answer\n[WARN] Entity Clarity [13/20] — Name missing`;
+    expect(parseSignals(partial)).toHaveLength(2);
+  });
+
+  it('handles em-dash, en-dash, and hyphen separators', () => {
+    const withHyphen = '[PASS] Citability [20/25] - Direct answer';
+    const withEnDash = '[PASS] Citability [20/25] – Direct answer';
+    const withEmDash = '[PASS] Citability [20/25] — Direct answer';
+    expect(parseSignals(withHyphen)).toHaveLength(1);
+    expect(parseSignals(withEnDash)).toHaveLength(1);
+    expect(parseSignals(withEmDash)).toHaveLength(1);
+  });
+});
+
+// ── parseAiAnswerPreview ──────────────────────────────────────────────────────
+
+describe('parseAiAnswerPreview', () => {
+  it('parses query, answer, and missing from full report', () => {
+    const preview = parseAiAnswerPreview(FULL_REPORT);
+    expect(preview).not.toBeNull();
+    expect(preview!.query).toBe('best dental clinic in Cebu');
+    expect(preview!.answer).toContain('Smith Dental');
+    expect(preview!.missing).toContain('certifications');
+  });
+
+  it('returns null for empty string', () => {
+    expect(parseAiAnswerPreview('')).toBeNull();
+  });
+
+  it('returns null when no preview section exists', () => {
+    expect(parseAiAnswerPreview('GEO SCORE: 72 / 100')).toBeNull();
   });
 });

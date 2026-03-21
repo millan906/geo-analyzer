@@ -99,19 +99,21 @@ export default function GeoAnalyzer() {
   const tabProps = { apiKey: activeKey, provider, model };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-brand-lavender">
       <ConsentModal />
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <header className="bg-white sticky top-0 z-10 shadow-[0_2px_12px_rgba(91,53,213,0.08)]">
         {/* Top bar */}
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shadow-sm">
-              <span className="text-white font-black text-sm">G</span>
+        <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-brand-purple rounded-lg flex items-center justify-center shadow-sm shrink-0">
+              <span className="text-white font-black text-sm tracking-tight">G</span>
             </div>
             <div>
-              <h1 className="font-bold text-gray-900 text-base leading-none">GEO Analyzer</h1>
-              <p className="text-[10px] text-gray-400 tracking-wide uppercase mt-0.5">
-                The Yoast SEO of the AI Era
+              <h1 className="font-bold text-gray-900 text-sm leading-none tracking-tight">
+                GEO Analyzer
+              </h1>
+              <p className="text-[10px] text-gray-400 tracking-widest uppercase mt-0.5">
+                SEO + GEO · Full AI Visibility
               </p>
             </div>
           </div>
@@ -156,7 +158,7 @@ export default function GeoAnalyzer() {
                         onClick={() => handleProviderChange(p)}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
                           provider === p
-                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                            ? 'bg-brand-purple text-white border-brand-purple shadow-sm'
                             : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                         }`}
                       >
@@ -166,14 +168,14 @@ export default function GeoAnalyzer() {
                         {cfg.fullName}
                         {serverKeys[p] && !apiKeys[p] && (
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${provider === p ? 'bg-indigo-500 text-indigo-100' : 'bg-blue-100 text-blue-700'}`}
+                            className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${provider === p ? 'bg-[#4E2EC4] text-white' : 'bg-blue-100 text-blue-700'}`}
                           >
                             SERVER
                           </span>
                         )}
                         {cfg.freeTier && !serverKeys[p] && (
                           <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${provider === p ? 'bg-indigo-500 text-indigo-100' : 'bg-green-100 text-green-700'}`}
+                            className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${provider === p ? 'bg-[#4E2EC4] text-white' : 'bg-green-100 text-green-700'}`}
                           >
                             FREE
                           </span>
@@ -197,12 +199,12 @@ export default function GeoAnalyzer() {
                       onChange={(e) => handleKeyChange(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && handleSaveKey()}
                       placeholder={providerConfig.keyPlaceholder}
-                      className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-brand-purple"
                     />
                     <button
                       onClick={handleSaveKey}
                       disabled={!activeKey}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg shrink-0 transition-colors ${activeKey ? 'bg-indigo-600 text-white hover:bg-indigo-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg shrink-0 transition-colors ${activeKey ? 'bg-brand-purple text-white hover:bg-[#4E2EC4]' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}
                     >
                       {activeKey ? '✓ Done' : 'Paste key above'}
                     </button>
@@ -222,7 +224,7 @@ export default function GeoAnalyzer() {
                   <select
                     value={model}
                     onChange={(e) => handleModelChange(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-purple"
                   >
                     {providerConfig.models.map((m) => (
                       <option key={m.id} value={m.id}>
@@ -241,6 +243,18 @@ export default function GeoAnalyzer() {
                   </button>
                 )}
               </div>
+
+              {/* Model consistency notice */}
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                <span className="text-amber-500 text-sm shrink-0 mt-0.5">⚠</span>
+                <p className="text-xs text-amber-700 leading-relaxed">
+                  <span className="font-bold">Model consistency note:</span> GEO scoring determinism
+                  varies by model — Claude and GPT-4o produce the most consistent scores across
+                  repeated runs, while open-source models (Llama, Mixtral) may show higher score
+                  variance. For thesis-grade or client-facing reports, Claude or GPT-4o is
+                  recommended.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -248,13 +262,14 @@ export default function GeoAnalyzer() {
         <TabNav activeTab={activeTab} onTabChange={setActiveTab} />
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {activeTab === 'analyze' && (
           <AnalyzeTab
             {...tabProps}
             isReady={isReady}
             url={sharedUrl}
             onUrlChange={setSharedUrl}
+            onTabChange={(tab) => setActiveTab(tab as Tab)}
             consensusKeys={{
               gemini: apiKeys.gemini,
               groq: apiKeys.groq,
@@ -266,7 +281,14 @@ export default function GeoAnalyzer() {
         {activeTab === 'schema' && <SchemaTab {...tabProps} url={sharedUrl} />}
         {activeTab === 'rewrite' && <RewriteTab {...tabProps} url={sharedUrl} />}
         {activeTab === 'competitor' && <CompetitorTab {...tabProps} />}
-        {activeTab === 'audit' && <MarketingAuditTab {...tabProps} url={sharedUrl} />}
+        {activeTab === 'audit' && (
+          <MarketingAuditTab
+            {...tabProps}
+            url={sharedUrl}
+            onUrlChange={setSharedUrl}
+            onTabChange={(tab) => setActiveTab(tab as Tab)}
+          />
+        )}
         {activeTab === 'history' && <HistoryTab />}
       </div>
     </div>

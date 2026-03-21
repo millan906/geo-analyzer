@@ -1,6 +1,36 @@
 export const runtime = 'nodejs';
 export const maxDuration = 30;
 
+/** Block private/loopback/link-local hostnames to prevent SSRF */
+function isPrivateHost(hostname: string): boolean {
+  const h = hostname.toLowerCase();
+
+  // Loopback and localhost
+  if (h === 'localhost' || h === '0.0.0.0' || h.endsWith('.localhost')) return true;
+
+  // AWS metadata and link-local
+  if (h.startsWith('169.254.')) return true;
+
+  // IPv6 loopback
+  if (h === '::1' || h === '[::1]') return true;
+
+  // Private IPv4 ranges (literal IP hostnames)
+  const ipv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(h);
+  if (ipv4) {
+    const [, a, b] = ipv4.map(Number);
+    if (a === 10) return true; // 10.0.0.0/8
+    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+    if (a === 192 && b === 168) return true; // 192.168.0.0/16
+    if (a === 127) return true; // 127.0.0.0/8
+    if (a === 0) return true; // 0.0.0.0/8
+  }
+
+  // .local mDNS hostnames
+  if (h.endsWith('.local') || h.endsWith('.internal')) return true;
+
+  return false;
+}
+
 function extractText(html: string): string {
   return (
     html
@@ -51,6 +81,13 @@ export async function POST(request: Request) {
 
     if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
       return Response.json({ error: 'Only http and https URLs are supported.' }, { status: 400 });
+    }
+
+    if (isPrivateHost(parsedUrl.hostname)) {
+      return Response.json(
+        { error: 'URL points to a private or reserved address.' },
+        { status: 400 }
+      );
     }
 
     const response = await fetch(parsedUrl.toString(), {

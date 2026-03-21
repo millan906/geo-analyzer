@@ -60,21 +60,32 @@ export function StreamingOutput({
   const isLocked = locked && !unlocked && !session;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wider">{label}</h2>
-        {output && !isStreaming && !isLocked && <CopyButton text={output} label={copyLabel} />}
-        {isLocked && (
-          <span className="text-xs text-red-400 font-medium flex items-center gap-1">
-            🔒 Locked
-          </span>
-        )}
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+      {/* Card header */}
+      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100 bg-gray-50/60">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-indigo-400 shrink-0" />
+          <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">{label}</h2>
+          {isStreaming && (
+            <span className="text-[10px] text-indigo-500 font-medium animate-pulse">
+              Streaming…
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-3">
+          {output && !isStreaming && !isLocked && <CopyButton text={output} label={copyLabel} />}
+          {isLocked && (
+            <span className="text-xs text-red-400 font-medium flex items-center gap-1">
+              🔒 Locked
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="relative">
         <div
           ref={ref}
-          className={`bg-slate-900 text-slate-100 rounded-xl p-6 font-mono text-sm leading-relaxed overflow-auto max-h-[640px] whitespace-pre-wrap transition-all duration-500 ${
+          className={`p-5 text-sm text-slate-700 leading-relaxed overflow-auto max-h-[640px] whitespace-pre-wrap font-mono transition-all duration-500 ${
             isLocked ? 'blur-md select-none pointer-events-none' : ''
           }`}
           onCopy={isLocked ? (e) => e.preventDefault() : undefined}
@@ -84,8 +95,8 @@ export function StreamingOutput({
         </div>
 
         {isLocked && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-slate-900/40 backdrop-blur-sm">
-            <div className="bg-white rounded-xl shadow-xl p-6 mx-4 w-full max-w-sm text-center space-y-3">
+          <div className="absolute inset-0 flex items-center justify-center rounded-b-xl bg-white/60 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-xl border border-gray-200 p-6 mx-4 w-full max-w-sm text-center space-y-3">
               <div className="text-2xl">🔒</div>
               <p className="font-bold text-gray-900 text-sm">Report locked</p>
               <p className="text-xs text-gray-500">

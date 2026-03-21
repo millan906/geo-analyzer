@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Manrope } from 'next/font/google';
 import { SessionProvider } from 'next-auth/react';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+const manrope = Manrope({ subsets: ['latin'], weight: ['400', '500', '600', '700', '800'] });
 
 export const metadata: Metadata = {
   title: 'GEO Analyzer — The Yoast SEO of the AI Era',
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="GEO Analyzer" />
       </head>
-      <body className={inter.className}>
+      <body className={manrope.className}>
         <SessionProvider>{children}</SessionProvider>
         <script
           dangerouslySetInnerHTML={{

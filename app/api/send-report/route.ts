@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { auth } from '@/auth';
 
 function parseSection(text: string, heading: string): string {
   const regex = new RegExp(`${heading}[:\\s]*([\\s\\S]*?)(?=\\n[A-Z]{3,}[\\s\\n]|$)`, 'i');
@@ -8,18 +9,20 @@ function parseSection(text: string, heading: string): string {
 }
 
 function formatSignals(reportText: string): string {
-  const signalRegex = /(🟢|🟡|🔴)\s+(\w[\w\s]+?)\s+\[(\d+)\/(\d+)\]\s*[–-]\s*([^\n]+)/g;
+  const signalRegex =
+    /\[(PASS|WARN|FAIL)\]\s+([A-Za-z &]+?)\s*\[(\d+)\/(\d+)\]\s*[—–\-]+\s*([^\n]+)/g;
   let html = '';
   let match;
   while ((match = signalRegex.exec(reportText)) !== null) {
-    const [, emoji, name, score, max, reason] = match;
-    const color = emoji === '🟢' ? '#16a34a' : emoji === '🟡' ? '#ca8a04' : '#dc2626';
-    const bg = emoji === '🟢' ? '#f0fdf4' : emoji === '🟡' ? '#fefce8' : '#fef2f2';
-    const border = emoji === '🟢' ? '#bbf7d0' : emoji === '🟡' ? '#fef08a' : '#fecaca';
+    const [, marker, name, score, max, reason] = match;
+    const color = marker === 'PASS' ? '#16a34a' : marker === 'WARN' ? '#ca8a04' : '#dc2626';
+    const bg = marker === 'PASS' ? '#f0fdf4' : marker === 'WARN' ? '#fefce8' : '#fef2f2';
+    const border = marker === 'PASS' ? '#bbf7d0' : marker === 'WARN' ? '#fef08a' : '#fecaca';
+    const label = marker === 'PASS' ? '✓' : marker === 'WARN' ? '!' : '✕';
     html += `
       <div style="background:${bg};border:1px solid ${border};border-radius:8px;padding:12px 16px;margin-bottom:8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <span style="font-weight:700;color:${color};font-size:13px;">${emoji} ${name.trim()}</span>
+          <span style="font-weight:700;color:${color};font-size:13px;">${label} ${name.trim()}</span>
           <span style="font-weight:700;color:${color};font-size:13px;">${score}/${max}</span>
         </div>
         <p style="margin:0;font-size:12px;color:#374151;line-height:1.5;">${reason.trim()}</p>
@@ -42,6 +45,11 @@ function formatQuickWins(reportText: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const resend = new Resend(process.env.RESEND_API_KEY);
   const { to, reportText, geoScore, url } = await request.json();
 
@@ -49,17 +57,36 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  const scoreEmoji = geoScore >= 80 ? '🟢' : geoScore >= 50 ? '🟡' : '🔴';
-  const scoreLabel = geoScore >= 80 ? 'GEO Ready' : geoScore >= 50 ? 'Needs Work' : 'Not Optimized';
-  const scoreColor = geoScore >= 80 ? '#16a34a' : geoScore >= 50 ? '#ca8a04' : '#dc2626';
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(to)) {
+    return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
+  }
+
+  const scoreLabel =
+    geoScore >= 80 ? 'GEO Ready' : geoScore >= 65 ? 'Approaching Citability' : 'Not Optimized';
+  const scoreColor = geoScore >= 80 ? '#16a34a' : geoScore >= 65 ? '#ca8a04' : '#dc2626';
   const signalsHtml = formatSignals(reportText);
   const quickWinsHtml = formatQuickWins(reportText);
+
+  // Sanitize URL for safe rendering in HTML
+  let safeUrl = '';
+  let safeHostname = '';
+  try {
+    const parsed = new URL(url);
+    if (['http:', 'https:'].includes(parsed.protocol)) {
+      safeUrl = parsed.href;
+      safeHostname = parsed.hostname;
+    }
+  } catch {
+    // Invalid URL — omit from email
+  }
 
   try {
     await resend.emails.send({
       from: 'GEO Analyzer <onboarding@resend.dev>',
       to,
-      subject: `GEO Report: ${geoScore}/100 ${scoreEmoji} ${url ? `— ${new URL(url).hostname}` : ''}`,
+      subject: `GEO Report: ${geoScore}/100 — ${safeHostname || 'GEO Analyzer'}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -83,8 +110,8 @@ export async function POST(request: NextRequest) {
             <!-- Score -->
             <div style="padding:28px 32px;text-align:center;border-bottom:1px solid #f3f4f6;">
               <div style="font-size:72px;font-weight:900;color:${scoreColor};line-height:1;">${geoScore}</div>
-              <div style="font-size:14px;color:#6b7280;margin-top:4px;">/ 100 &nbsp;${scoreEmoji}&nbsp; <strong style="color:${scoreColor};">${scoreLabel}</strong></div>
-              ${url ? `<div style="margin-top:12px;"><a href="${url}" style="font-size:12px;color:#4f46e5;word-break:break-all;">${url}</a></div>` : ''}
+              <div style="font-size:14px;color:#6b7280;margin-top:4px;">/ 100 &nbsp;<strong style="color:${scoreColor};">${scoreLabel}</strong></div>
+              ${safeUrl ? `<div style="margin-top:12px;"><a href="${safeUrl}" style="font-size:12px;color:#4f46e5;word-break:break-all;">${safeHostname}</a></div>` : ''}
             </div>
 
             <!-- Signal Breakdown -->

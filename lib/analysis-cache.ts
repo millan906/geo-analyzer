@@ -1,4 +1,4 @@
-const CACHE_PREFIX = 'geo-report-';
+const CACHE_PREFIX = 'geo-cache-';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 export interface CachedReport {
@@ -12,13 +12,22 @@ function normalizeUrl(url: string): string {
   return url.toLowerCase().trim().replace(/\/$/, '');
 }
 
-export function getCachedReport(url: string): CachedReport | null {
+/** Build a stable cache key for each tab */
+export function cacheKey(tab: string, ...parts: string[]): string {
+  return [tab, ...parts.map((p) => normalizeUrl(p))].filter(Boolean).join('::');
+}
+
+function storageKey(key: string): string {
+  return CACHE_PREFIX + key;
+}
+
+export function getCachedReport(key: string): CachedReport | null {
   try {
-    const raw = localStorage.getItem(CACHE_PREFIX + normalizeUrl(url));
+    const raw = localStorage.getItem(storageKey(key));
     if (!raw) return null;
     const entry = JSON.parse(raw) as CachedReport;
     if (Date.now() - new Date(entry.cachedAt).getTime() > CACHE_TTL) {
-      localStorage.removeItem(CACHE_PREFIX + normalizeUrl(url));
+      localStorage.removeItem(storageKey(key));
       return null;
     }
     return entry;
@@ -27,18 +36,18 @@ export function getCachedReport(url: string): CachedReport | null {
   }
 }
 
-export function setCachedReport(url: string, text: string, provider: string, model: string): void {
+export function setCachedReport(key: string, text: string, provider: string, model: string): void {
   try {
     const entry: CachedReport = { text, provider, model, cachedAt: new Date().toISOString() };
-    localStorage.setItem(CACHE_PREFIX + normalizeUrl(url), JSON.stringify(entry));
+    localStorage.setItem(storageKey(key), JSON.stringify(entry));
   } catch {
     // localStorage quota exceeded — skip silently
   }
 }
 
-export function bustCache(url: string): void {
+export function bustCache(key: string): void {
   try {
-    localStorage.removeItem(CACHE_PREFIX + normalizeUrl(url));
+    localStorage.removeItem(storageKey(key));
   } catch {}
 }
 

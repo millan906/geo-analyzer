@@ -74,7 +74,7 @@ function generateVerdict(
 
   // Find weakest GEO signals
   const weakSignals = signals
-    .filter((s) => s.emoji === '🔴' || s.emoji === '🟡')
+    .filter((s) => s.emoji === 'fail' || s.emoji === 'warn')
     .sort((a, b) => a.score / a.maxScore - b.score / b.maxScore)
     .slice(0, 2)
     .map((s) => s.name);
@@ -318,7 +318,9 @@ export function SeoComparison({ geoScore, signals }: SeoComparisonProps) {
                     {signals.map((s) => (
                       <div key={s.name} className="flex items-center justify-between">
                         <span className="text-[11px] flex items-center gap-1">
-                          <span>{s.emoji}</span>
+                          <span
+                            className={`w-2 h-2 rounded-full inline-block ${s.emoji === 'pass' ? 'bg-green-400' : s.emoji === 'warn' ? 'bg-amber-400' : 'bg-red-400'}`}
+                          />
                           <span className="opacity-80">{s.name}</span>
                         </span>
                         <span className="text-[11px] font-bold">

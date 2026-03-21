@@ -24,8 +24,8 @@ export function SubmitButton({
       disabled={isDisabled}
       className={`flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold text-white transition-all shadow-sm ${
         isDisabled
-          ? 'bg-indigo-400 cursor-not-allowed'
-          : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-md active:scale-95'
+          ? 'bg-[#9075E3] cursor-not-allowed'
+          : 'bg-brand-purple hover:bg-[#4E2EC4] hover:shadow-cta hover:-translate-y-px active:scale-95'
       }`}
     >
       {isLoading ? (

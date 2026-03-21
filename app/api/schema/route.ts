@@ -18,6 +18,7 @@ export async function POST(request: Request) {
       description,
       services,
       faqs,
+      extraContext,
       apiKey,
       provider = 'gemini',
       model = 'gemini-2.0-flash',
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
       return new Response('Please add your API key — click the provider button in the top right.', {
         status: 401,
       });
-    if (!businessName?.trim()) return new Response('Business name is required.', { status: 400 });
+    if (!description?.trim()) return new Response('Page content is required.', { status: 400 });
 
     const parts = [
       `Business Name: ${businessName.trim()}`,
@@ -41,6 +42,7 @@ export async function POST(request: Request) {
       description?.trim() && `Description: ${description.trim()}`,
       services?.trim() && `Services (one per line):\n${services.trim()}`,
       faqs?.trim() && `FAQs:\n${faqs.trim()}`,
+      extraContext?.trim() && extraContext.trim(),
     ].filter(Boolean) as string[];
 
     const stream = await createAIStream(

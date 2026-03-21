@@ -1,5 +1,5 @@
 import { createAIStream, STREAM_HEADERS } from '@/lib/ai-stream';
-import { REWRITE_SYSTEM_PROMPT } from '@/lib/system-prompt';
+import { STRATEGY_SYSTEM_PROMPT } from '@/lib/system-prompt';
 import { resolveWithFallbacks } from '@/lib/server-keys';
 
 export const runtime = 'nodejs';
@@ -8,10 +8,7 @@ export const maxDuration = 120;
 export async function POST(request: Request) {
   try {
     const {
-      content,
-      targetQuery,
-      rewriteFocus = 'Full GEO Optimization',
-      businessName = '',
+      auditReport,
       apiKey,
       provider = 'gemini',
       model = 'gemini-2.0-flash',
@@ -22,26 +19,16 @@ export async function POST(request: Request) {
       return new Response('Please add your API key — click the provider button in the top right.', {
         status: 401,
       });
-    if (!content?.trim()) return new Response('Content is required.', { status: 400 });
-    if (content.length > 60000)
-      return new Response('Content too long. Limit ~10,000 words.', { status: 400 });
-
-    const contextLines = [
-      `Rewrite Focus: ${rewriteFocus}`,
-      businessName.trim() && `Business Name: ${businessName.trim()}`,
-      targetQuery?.trim() && `Target AI Query: "${targetQuery.trim()}"`,
-    ]
-      .filter(Boolean)
-      .join('\n');
+    if (!auditReport?.trim()) return new Response('Audit report is required.', { status: 400 });
 
     const stream = await createAIStream(
       {
         provider,
         apiKey: effectiveKey,
         model,
-        system: REWRITE_SYSTEM_PROMPT,
-        userMessage: `Rewrite the following content for GEO optimization.\n\n${contextLines}\n\nContent to rewrite:\n${content.trim()}`,
-        maxTokens: 8000,
+        system: STRATEGY_SYSTEM_PROMPT,
+        userMessage: `Based on the following audit report, generate a prioritized GEO strategy roadmap:\n\n${auditReport.trim()}`,
+        maxTokens: 4000,
       },
       fallbacks
     );

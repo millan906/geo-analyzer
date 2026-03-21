@@ -1,11 +1,17 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
+
+export interface StreamTiming {
+  durationMs: number | null;
+  timeToFirstTokenMs: number | null;
+}
 
 export interface UseStreamReturn {
   output: string;
   isStreaming: boolean;
   error: string;
+  timing: StreamTiming;
   run: (body: Record<string, string>) => Promise<void>;
   reset: () => void;
 }
@@ -14,6 +20,12 @@ export function useStream(endpoint: string): UseStreamReturn {
   const [output, setOutput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState('');
+  const [timing, setTiming] = useState<StreamTiming>({
+    durationMs: null,
+    timeToFirstTokenMs: null,
+  });
+  const startTimeRef = useRef<number | null>(null);
+  const firstTokenSeenRef = useRef(false);
 
   const run = useCallback(
     async (body: Record<string, string>) => {
@@ -22,6 +34,9 @@ export function useStream(endpoint: string): UseStreamReturn {
       setError('');
       setOutput('');
       setIsStreaming(true);
+      setTiming({ durationMs: null, timeToFirstTokenMs: null });
+      startTimeRef.current = Date.now();
+      firstTokenSeenRef.current = false;
 
       try {
         const response = await fetch(endpoint, {
@@ -42,6 +57,14 @@ export function useStream(endpoint: string): UseStreamReturn {
           const { done, value } = await reader.read();
           if (done) break;
           const chunk = decoder.decode(value, { stream: true });
+
+          // Record time to first token
+          if (!firstTokenSeenRef.current && chunk.length > 0 && startTimeRef.current) {
+            firstTokenSeenRef.current = true;
+            const ttft = Date.now() - startTimeRef.current;
+            setTiming((prev) => ({ ...prev, timeToFirstTokenMs: ttft }));
+          }
+
           setOutput((prev) => {
             const next = prev + chunk;
             if (next.startsWith('ERROR:')) {
@@ -57,6 +80,9 @@ export function useStream(endpoint: string): UseStreamReturn {
         }
       } finally {
         setIsStreaming(false);
+        if (startTimeRef.current) {
+          setTiming((prev) => ({ ...prev, durationMs: Date.now() - startTimeRef.current! }));
+        }
       }
     },
     [endpoint, isStreaming]
@@ -66,7 +92,8 @@ export function useStream(endpoint: string): UseStreamReturn {
     setOutput('');
     setError('');
     setIsStreaming(false);
+    setTiming({ durationMs: null, timeToFirstTokenMs: null });
   }, []);
 
-  return { output, isStreaming, error, run, reset };
+  return { output, isStreaming, error, timing, run, reset };
 }
