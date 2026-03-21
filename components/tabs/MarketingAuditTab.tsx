@@ -564,6 +564,7 @@ export function MarketingAuditTab({
 }: MarketingAuditTabProps) {
   const [subTab, setSubTab] = useState<'audit' | 'strategy'>('audit');
   const [openSections, setOpenSections] = useState<Set<string>>(new Set());
+  const [targetQuery, setTargetQuery] = useState('');
   const [validationError, setValidationError] = useState('');
   const [isFetching, setIsFetching] = useState(false);
   const [seoScore, setSeoScore] = useState<number | null>(null);
@@ -679,7 +680,13 @@ export function MarketingAuditTab({
     try {
       const { text } = await fetchPageContent(url);
       setIsFetching(false);
-      run({ content: text, apiKey: apiKey.trim(), provider, model });
+      run({
+        content: text,
+        targetQuery: targetQuery.trim(),
+        apiKey: apiKey.trim(),
+        provider,
+        model,
+      });
     } catch (err) {
       setValidationError(err instanceof Error ? err.message : 'Failed to fetch page.');
     } finally {
@@ -812,6 +819,17 @@ export function MarketingAuditTab({
               onChange={(e) => onUrlChange(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleAudit()}
               placeholder="https://yoursite.com/service-page"
+              className={inputCls}
+            />
+          </div>
+          <div className="flex-1">
+            <label className={`${labelCls} mb-2`}>Target AI Query</label>
+            <input
+              type="text"
+              value={targetQuery}
+              onChange={(e) => setTargetQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleAudit()}
+              placeholder="e.g. best dental clinic in Cebu City"
               className={inputCls}
             />
           </div>

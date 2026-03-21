@@ -74,14 +74,22 @@ export function parseAuditSignals(text: string): AuditSignal[] {
   return signals;
 }
 
-export function getSeoQuickFixes(text: string): string[] {
-  const fixes: string[] = [];
+export function getSeoQuickFixes(text: string): Record<string, string> {
+  const fixes: Record<string, string> = {};
   const section = text.match(/SEO QUICK FIXES\n([\s\S]*?)(?:━|GEO SCORE)/);
   if (!section) return fixes;
   const lines = section[1].split('\n');
   for (const line of lines) {
-    const m = line.match(/^\d+\.\s+(.+)/);
-    if (m) fixes.push(m[1].trim());
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    // Match: [Signal Name] fix text — ~time  or  Signal Name: fix text — ~time
+    const bracketMatch = trimmed.match(/^\[([^\]]+)\]\s+(.+)/);
+    if (bracketMatch) {
+      const name = normalizeAuditSignalName(bracketMatch[1]);
+      if (name) fixes[name] = bracketMatch[2].trim();
+      continue;
+    }
+    // Fallback: numbered list "1. fix" — skip, can't map to signal
   }
   return fixes;
 }

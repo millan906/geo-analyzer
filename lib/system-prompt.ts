@@ -37,9 +37,10 @@ SEO SIGNALS
 [PASS/WARN/FAIL] CTA & Conversion    [X/10] — [one-line specific finding]
 
 SEO QUICK FIXES
-1. [Specific fix] — ~[time estimate]
-2. [Specific fix] — ~[time estimate]
-3. [Specific fix] — ~[time estimate]
+For each signal that scored WARN or FAIL, output one fix on its own line using exactly this format:
+[Signal Name] [Specific fix for that signal] — ~[time estimate]
+
+Only include signals that need fixing. Use the exact signal names: Title & Meta, Heading Structure, Content Depth, Social Proof, Brand Clarity, CTA & Conversion.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -314,12 +315,12 @@ SEO SCORE: [X] / 100  [[PASS] Strong Foundation / [WARN] Needs Improvement / [FA
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 SEO SIGNALS
-[PASS/WARN/FAIL] Title & Meta        [X/20] — [one-line specific finding]
-[PASS/WARN/FAIL] Heading Structure   [X/20] — [one-line specific finding]
-[PASS/WARN/FAIL] Content Depth       [X/20] — [one-line specific finding]
-[PASS/WARN/FAIL] Social Proof        [X/15] — [one-line specific finding]
-[PASS/WARN/FAIL] Brand Clarity       [X/15] — [one-line specific finding]
-[PASS/WARN/FAIL] CTA & Conversion    [X/10] — [one-line specific finding]
+[PASS/WARN/FAIL] Title & Meta        [X/20] — [quote or name the specific element observed, e.g. "H1 reads 'Best Dentist in Cebu' — meta description absent from content"]
+[PASS/WARN/FAIL] Heading Structure   [X/20] — [name actual headings found, e.g. "H2s present: 'Our Services', 'Why Choose Us' — no H3 breakdowns under services"]
+[PASS/WARN/FAIL] Content Depth       [X/20] — [reference actual content observed, e.g. "Covers 4 service types in depth — missing pricing and process detail"]
+[PASS/WARN/FAIL] Social Proof        [X/15] — [cite what is or isn't there, e.g. "'500+ happy clients' mentioned but no named reviews or star ratings"]
+[PASS/WARN/FAIL] Brand Clarity       [X/15] — [name the brand and what's clear or unclear, e.g. "'Acme Legal' named in H1 but value prop only appears mid-page"]
+[PASS/WARN/FAIL] CTA & Conversion    [X/10] — [quote the CTA or note its absence, e.g. "'Book a free consult' button present — phone number only in footer"]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -335,16 +336,16 @@ Example: [Rewritten version or concrete example]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 GEO SCORE: [X] / 100  [[PASS] GEO Ready / [WARN] Approaching Citability / [FAIL] Not Optimized]
-Target AI Query: "[inferred or provided query]"
+Target AI Query: "[use the provided Target AI Query if given; otherwise infer the most likely query a potential customer would type into ChatGPT or Perplexity to find this business]"
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 GEO SIGNALS
-[PASS/WARN/FAIL] Citability        [X/25] — [one-line specific finding]
-[PASS/WARN/FAIL] Entity Clarity    [X/20] — [one-line specific finding]
-[PASS/WARN/FAIL] Factual Density   [X/20] — [one-line specific finding]
-[PASS/WARN/FAIL] Format Quality    [X/15] — [one-line specific finding]
-[PASS/WARN/FAIL] Topical Authority [X/10] — [one-line specific finding]
-[PASS/WARN/FAIL] Schema Health     [X/10] — [one-line specific finding]
+[PASS/WARN/FAIL] Citability        [X/25] — [reference the actual opening or a quoted sentence, e.g. "Opens with 'Acme Dental provides...' — direct answer, but buries location until paragraph 3"]
+[PASS/WARN/FAIL] Entity Clarity    [X/20] — [name the entity and what's clear or missing, e.g. "'Acme Dental Cebu' named in H1 — industry category never explicitly stated"]
+[PASS/WARN/FAIL] Factual Density   [X/20] — [cite specific facts found or absent, e.g. "States '15 years in business' and 'ISO certified' — no client count or case data"]
+[PASS/WARN/FAIL] Format Quality    [X/15] — [describe actual structure observed, e.g. "3 H2 sections present, no FAQ block — bullet lists used in services section"]
+[PASS/WARN/FAIL] Topical Authority [X/10] — [note depth or gaps relative to the target query, e.g. "Covers treatment types but omits aftercare, pricing range, and process steps"]
+[PASS/WARN/FAIL] Schema Health     [X/10] — [state what schema is or isn't present, e.g. "No JSON-LD detected in content — LocalBusiness and FAQPage schema absent"]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -372,7 +373,7 @@ The 2 highest-impact rewrites for AI citability:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 AI ANSWER PREVIEW
-If an AI was asked "[Target AI Query]" and read this page, it would likely say:
+If an AI was asked "[the Target AI Query used above]" and read this page, it would likely say:
 
 "[Simulated 2–4 sentence AI-generated answer using ONLY the submitted content]"
 

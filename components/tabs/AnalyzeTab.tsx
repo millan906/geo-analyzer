@@ -160,7 +160,7 @@ export function AnalyzeTab({
   const [aiPreview, setAiPreview] = useState<AiAnswerPreview | null>(null);
   const [seoScore, setSeoScore] = useState<number | null>(null);
   const [seoSignals, setSeoSignals] = useState<AuditSignal[]>([]);
-  const [seoFixes, setSeoFixes] = useState<string[]>([]);
+  const [seoFixes, setSeoFixes] = useState<Record<string, string>>({});
   const [validationError, setValidationError] = useState('');
   const [isFetching, setIsFetching] = useState(false);
   const [priorHistory, setPriorHistory] = useState<HistoryEntry[]>([]);
@@ -672,7 +672,7 @@ export function AnalyzeTab({
                     parsed.emoji === 'pass' ? 'green' : parsed.emoji === 'warn' ? 'yellow' : 'red'
                   ]
                 : null;
-              const fix = seoFixes[idx];
+              const fix = seoFixes[def.name];
               return (
                 <div
                   key={def.name}

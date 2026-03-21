@@ -9,6 +9,7 @@ export async function POST(request: Request) {
   try {
     const {
       content,
+      targetQuery,
       apiKey,
       provider = 'gemini',
       model = 'gemini-2.0-flash',
@@ -23,13 +24,15 @@ export async function POST(request: Request) {
     if (content.length > 60000)
       return new Response('Content too long. Limit ~10,000 words.', { status: 400 });
 
+    const queryLine = targetQuery?.trim() ? `Target AI Query: "${targetQuery.trim()}"\n\n` : '';
+
     const stream = await createAIStream(
       {
         provider,
         apiKey: effectiveKey,
         model,
         system: MARKETING_AUDIT_PROMPT,
-        userMessage: `Run a full marketing audit on this page content:\n\n${content.trim()}`,
+        userMessage: `Run a full marketing audit on this page content:\n\n${queryLine}${content.trim()}`,
       },
       fallbacks
     );

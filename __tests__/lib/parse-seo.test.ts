@@ -31,9 +31,9 @@ SEO SIGNALS
 [FAIL] CTA & Conversion    [3/10] — No phone number visible, form hard to find
 
 SEO QUICK FIXES
-1. Add phone number to header — ~5min
-2. Expand service descriptions to 600+ words — ~30min
-3. Add H3 subheadings inside each H2 section — ~15min
+[CTA & Conversion] Add phone number to header — ~5min
+[Content Depth] Expand service descriptions to 600+ words — ~30min
+[Heading Structure] Add H3 subheadings inside each H2 section — ~15min
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 GEO SCORE: 59 / 100
@@ -178,19 +178,18 @@ describe('parseAuditSignals — edge cases', () => {
 // ── getSeoQuickFixes ──────────────────────────────────────────────────────────
 
 describe('getSeoQuickFixes', () => {
-  it('parses numbered quick fixes from full report', () => {
+  it('parses signal-labeled quick fixes from full report', () => {
     const fixes = getSeoQuickFixes(FULL_SEO_REPORT);
-    expect(fixes).toHaveLength(3);
-    expect(fixes[0]).toContain('phone number');
-    expect(fixes[1]).toContain('600+');
-    expect(fixes[2]).toContain('H3');
+    expect(fixes['CTA & Conversion']).toContain('phone number');
+    expect(fixes['Content Depth']).toContain('600+');
+    expect(fixes['Heading Structure']).toContain('H3');
   });
 
-  it('returns empty array when no SEO QUICK FIXES section', () => {
-    expect(getSeoQuickFixes('SEO SCORE: 63 / 100')).toEqual([]);
+  it('returns empty object when no SEO QUICK FIXES section', () => {
+    expect(getSeoQuickFixes('SEO SCORE: 63 / 100')).toEqual({});
   });
 
-  it('returns empty array for empty string', () => {
-    expect(getSeoQuickFixes('')).toEqual([]);
+  it('returns empty object for empty string', () => {
+    expect(getSeoQuickFixes('')).toEqual({});
   });
 });
