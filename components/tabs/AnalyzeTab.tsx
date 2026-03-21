@@ -696,7 +696,13 @@ export function AnalyzeTab({
                     {parsed?.finding ?? <span className="text-gray-300">Analyzing…</span>}
                   </p>
                   <p className="text-sm text-gray-500 leading-relaxed pl-4">
-                    {fix ?? <span className="text-gray-300">Analyzing…</span>}
+                    {fix ? (
+                      fix
+                    ) : parsed?.emoji === 'pass' ? (
+                      <span className="text-gray-300">—</span>
+                    ) : (
+                      <span className="text-gray-300">Analyzing…</span>
+                    )}
                   </p>
                 </div>
               );
