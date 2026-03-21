@@ -201,7 +201,7 @@ export function AnalyzeTab({
     const seoSigs = parseAuditSignals(activeOutput);
     if (seoSigs.length > 0) setSeoSignals(seoSigs);
     const fixes = getSeoQuickFixes(activeOutput);
-    if (fixes.length > 0) setSeoFixes(fixes);
+    if (Object.keys(fixes).length > 0) setSeoFixes(fixes);
     const preview = parseAiAnswerPreview(activeOutput);
     if (preview) setAiPreview(preview);
   }, [activeOutput]);
@@ -292,7 +292,7 @@ export function AnalyzeTab({
     setSignals([]);
     setSeoScore(null);
     setSeoSignals([]);
-    setSeoFixes([]);
+    setSeoFixes({});
     setAiPreview(null);
     setIsConsensusMode(false);
     hasSaved.current = false;
@@ -372,7 +372,7 @@ export function AnalyzeTab({
     setSignals([]);
     setSeoScore(null);
     setSeoSignals([]);
-    setSeoFixes([]);
+    setSeoFixes({});
     setAiPreview(null);
     setValidationError('');
     setUrl('');
