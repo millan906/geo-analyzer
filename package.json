@@ -17,7 +17,7 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.36.3",
+    "@anthropic-ai/sdk": "^0.80.0",
     "@auth/supabase-adapter": "^1.11.1",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.99.3",
