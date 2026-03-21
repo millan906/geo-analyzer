@@ -31,9 +31,9 @@ SEO SIGNALS
 [FAIL] CTA & Conversion    [3/10] — No phone number visible, form hard to find
 
 SEO QUICK FIXES
-[CTA & Conversion] Add phone number to header — ~5min
-[Content Depth] Expand service descriptions to 600+ words — ~30min
-[Heading Structure] Add H3 subheadings inside each H2 section — ~15min
+CTA & Conversion: Add phone number to header — ~5min
+Content Depth: Expand service descriptions to 600+ words — ~30min
+Heading Structure: Add H3 subheadings inside each H2 section — ~15min
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 GEO SCORE: 59 / 100

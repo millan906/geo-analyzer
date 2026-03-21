@@ -82,14 +82,12 @@ export function getSeoQuickFixes(text: string): Record<string, string> {
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    // Match: [Signal Name] fix text — ~time  or  Signal Name: fix text — ~time
-    const bracketMatch = trimmed.match(/^\[([^\]]+)\]\s+(.+)/);
-    if (bracketMatch) {
-      const name = normalizeAuditSignalName(bracketMatch[1]);
-      if (name) fixes[name] = bracketMatch[2].trim();
-      continue;
+    // Match: "Signal Name: fix text — ~time"
+    const colonMatch = trimmed.match(/^([^:]+):\s+(.+)/);
+    if (colonMatch) {
+      const name = normalizeAuditSignalName(colonMatch[1]);
+      if (name) fixes[name] = colonMatch[2].trim();
     }
-    // Fallback: numbered list "1. fix" — skip, can't map to signal
   }
   return fixes;
 }

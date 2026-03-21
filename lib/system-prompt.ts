@@ -37,8 +37,12 @@ SEO SIGNALS
 [PASS/WARN/FAIL] CTA & Conversion    [X/10] — [one-line specific finding]
 
 SEO QUICK FIXES
-For each signal that scored WARN or FAIL, output one fix on its own line using exactly this format:
-[Signal Name] [Specific fix for that signal] — ~[time estimate]
+For each signal that scored WARN or FAIL, output exactly one line per signal using this format:
+Signal Name: specific fix — ~time estimate
+
+Example:
+Social Proof: Add 3 named client testimonials with specific outcomes — ~30min
+CTA & Conversion: Move phone number from footer to the top navigation bar — ~10min
 
 Only include signals that need fixing. Use the exact signal names: Title & Meta, Heading Structure, Content Depth, Social Proof, Brand Clarity, CTA & Conversion.
 
