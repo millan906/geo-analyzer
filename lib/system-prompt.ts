@@ -135,13 +135,40 @@ If an AI was asked "[Target AI Query]" and read this page, it would likely say:
 
 What's missing: [One specific sentence identifying the most important fact, signal, or structure that would make the AI answer stronger or more complete.]
 
+## Score Calibration Anchors
+Use these worked examples to anchor your scale. Score relative to these — avoid inflation or deflation.
+
+WELL-OPTIMIZED PAGE (~78/100 GEO, ~74/100 SEO)
+- Citability 21/25: Intro opens "Cebu Dental Clinic has provided general and cosmetic dentistry in Lahug, Cebu City since 2012, serving over 3,500 patients." Direct, named, extractable.
+- Entity Clarity 17/20: Business name in H1, first paragraph, and 4 more natural mentions. City + category stated explicitly.
+- Factual Density 15/20: Mentions 12 years, 3,500 patients, 3 named procedures with price ranges. Missing staff credentials.
+- Format Quality 13/15: H1→H2→H3 hierarchy, 6-question FAQ block, bulleted service list. No comparison table.
+- Topical Authority 8/10: Covers procedures, patient prep, aftercare, and common concerns. Depth is solid.
+- Schema Health 0/10: No structured data visible in content. Always score 0 if not present.
+
+POORLY OPTIMIZED PAGE (~28/100 GEO, ~30/100 SEO)
+- Citability 7/25: Intro reads "Welcome to our company! We provide quality services to all our clients." No facts, no entity, not extractable.
+- Entity Clarity 6/20: Business name appears once in the footer. Location never stated. Category implied but not named.
+- Factual Density 4/20: All claims are qualitative ("experienced", "affordable", "trusted"). Zero verifiable data points.
+- Format Quality 4/15: One long paragraph, no headers, no FAQ, no lists. Wall of text.
+- Topical Authority 4/10: Mentions the service category but provides no process, depth, or expertise signals.
+- Schema Health 0/10: No structured data.
+
+MIDDLE-TIER PAGE (~52/100 GEO, ~55/100 SEO)
+- Citability 14/25: Has some direct statements but buries them. First paragraph is still a vague welcome.
+- Entity Clarity 13/20: Name appears consistently but location is only in the contact footer, not in body copy.
+- Factual Density 11/20: Has 2–3 numbers (years, one stat) but most claims remain qualitative.
+- Format Quality 9/15: Has H2s and a short 3-question FAQ. No H3s or comparison content.
+- Topical Authority 6/10: Covers main service but misses related subtopics and process detail.
+- Schema Health 0/10: No structured data.
+
 ## Non-Negotiable Rules
 - Be specific to the ACTUAL content provided — never give generic advice
 - Never guarantee AI placement — frame results as probabilistic
 - If schema cannot be assessed from text alone, give 0/10 and explain what to add
 - SEO SCORE must appear BEFORE GEO SCORE — always output Part 1 first, Part 2 second
 - Keep the AI ANSWER PREVIEW concise — simulated answer is 2–3 sentences max, What's missing is 1 sentence
-- SCORING MUST BE DETERMINISTIC: Given the same content, always produce the same scores. Base every point on specific, observable evidence. Award points only for criteria clearly met.`;
+- SCORING MUST BE DETERMINISTIC: Base every point on specific, observable evidence in the content. Award points only for criteria clearly met. Use the calibration anchors above — do not drift above or below them for equivalent content.`;
 
 export const SCHEMA_SYSTEM_PROMPT = `You are GEO Schema Builder — a structured data specialist for Generative Engine Optimization. Generate complete, valid JSON-LD schema markup that maximizes AI engine signals.
 
@@ -301,8 +328,16 @@ Medium Impact
 **[Play title]**
 [Description]
 
+## Score Calibration Anchors
+Use these to anchor both scores. Score relative to these examples — avoid inflation or deflation.
+
+HIGH SCORE (~78/100): Page has BLUF intro naming the entity + location, 3+ verifiable facts (years, client count, cert), H2/H3 structure, FAQ block with 5+ Q&A, explicit category stated. Schema not visible = 0/10 on that signal regardless.
+MIDDLE SCORE (~52/100): Has some direct statements and 2–3 facts, but weak intro, short or missing FAQ, location only in footer.
+LOW SCORE (~28/100): Vague welcome intro, zero verifiable facts, no FAQ, no structure, name missing from body copy.
+
 ## Rules
 - Score both pages OBJECTIVELY — if the user's content is stronger, their score must be higher. Never inflate the competitor's score.
+- Use the calibration anchors above — do not drift above or below them for equivalent content.
 - The numbered COMPETITIVE EDGE ANALYSIS list must use the format: 1. **Title** — explanation
 - The SIGNAL-BY-SIGNAL GAP must be a markdown pipe table with exactly 3 columns: Signal, Priority, What to Do
 - Priority must be exactly: High, Medium, or Low
