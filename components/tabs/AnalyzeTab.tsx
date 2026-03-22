@@ -82,8 +82,8 @@ const SEO_SIGNAL_SCHEMA = [
 ] as const;
 
 function getScoreSubtitle(score: number): string {
-  if (score >= 80) return 'Your content is well-optimized for AI discovery.';
-  if (score >= 65) return 'Approaching citability — a few targeted fixes will get you there.';
+  if (score >= 70) return 'Your content is well-optimized for AI discovery.';
+  if (score >= 50) return 'Approaching citability — a few targeted fixes will get you there.';
   return 'Significant improvements needed to appear in AI answers.';
 }
 
@@ -762,6 +762,39 @@ export function AnalyzeTab({
           url={url.trim()}
           geoScore={geoScore}
         />
+      )}
+
+      {/* Off-site signals notice — shown after analysis completes */}
+      {geoScore !== null && !isLoading && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-600 mb-2">
+            Beyond This Score
+          </p>
+          <p className="text-sm font-semibold text-amber-900 mb-1">
+            85% of AI visibility comes from off-page signals we can't score here.
+          </p>
+          <p className="text-sm text-amber-800 leading-relaxed mb-3">
+            Research across 240M+ AI citations shows most citations come from third-party sources —
+            not your own website. This score measures your on-page foundation. The rest depends on
+            your presence elsewhere.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: 'Reddit & forums', hint: 'Community discussions mentioning your brand' },
+              { label: 'Third-party reviews', hint: 'G2, Yelp, Trustpilot, industry directories' },
+              { label: 'Industry citations', hint: 'News, blogs, and publications linking to you' },
+              { label: 'YouTube presence', hint: '2nd most-cited source in Gemini & Perplexity' },
+            ].map((item) => (
+              <div key={item.label} className="flex items-start gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
+                <div>
+                  <p className="text-xs font-semibold text-amber-900">{item.label}</p>
+                  <p className="text-[11px] text-amber-700">{item.hint}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

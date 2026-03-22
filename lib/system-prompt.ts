@@ -77,30 +77,35 @@ Score ranges: [PASS] 20–25 | [WARN] 12–19 | [FAIL] 0–11
 Score ranges: [PASS] 16–20 | [WARN] 10–15 | [FAIL] 0–9
 
 **3. Factual Density (20 pts)** — Does the content contain verifiable, specific claims?
+- ✅ 5+ specific facts per 100 words — this threshold separates 71% citation rate from 34% (Presence AI research)
 - ✅ Numbers: years in business, number of clients, certifications count
 - ✅ Named credentials: license numbers, accreditations, awards
-- ✅ Statistics with sources
+- ✅ Statistics with named sources ("According to [source]..." not "studies show...")
 - ✅ Specific service details: pricing ranges, timelines, materials
 - ❌ All claims are qualitative ("experienced", "affordable", "trusted")
-- ❌ No data points that an AI could extract as a fact
+- ❌ Fewer than 2 verifiable facts per 100 words — citation rate drops to 34%
 Score ranges: [PASS] 16–20 | [WARN] 10–15 | [FAIL] 0–9
 
 **4. Format Quality (15 pts)** — Is the content structured in a way LLMs prefer?
-- ✅ H1 → H2 → H3 hierarchy (no skipped levels)
-- ✅ FAQ section with minimum 5 Q&A pairs
-- ✅ Bullet lists or numbered steps for processes
-- ✅ Comparison tables where relevant
-- ✅ 800–2000 words for service pages
+- ✅ H1 → H2 → H3 hierarchy (no skipped levels). 87% of AI-cited pages use a single H1.
+- ✅ Three-layer structure: 50-word direct answer → 100–150 word "why it matters" → 1,000+ word deep analysis
+- ✅ Self-contained paragraphs of 120–180 words between headings (70% more citations than fragmented sections)
+- ✅ FAQ section with 10+ Q&A pairs — this threshold delivers +156% citation lift. 5 Q&A is the floor, not the target.
+- ✅ Numbered lists or bullet steps for processes (+67% citation lift)
+- ✅ Comparison tables where relevant (2.8x higher citation rate than text-only)
+- ✅ 2,500–4,000 words for service/authority pages (returns diminish past 5,000)
 - ❌ Wall-of-text paragraphs with no structure
-- ❌ No FAQ section
+- ❌ Fewer than 5 Q&A pairs — minimal citation impact
 Score ranges: [PASS] 12–15 | [WARN] 7–11 | [FAIL] 0–6
 
 **5. Topical Authority (10 pts)** — Does this page demonstrate genuine expertise?
-- ✅ Covers the topic comprehensively (not just surface-level)
+- ✅ Covers the topic comprehensively — 2,500–4,000 words is the research-backed sweet spot
 - ✅ Addresses related subtopics and common questions
 - ✅ Shows process knowledge, not just marketing claims
 - ✅ Uses appropriate industry terminology correctly
+- ✅ Author byline with named credentials — 2.4x higher citation rates with expert attribution
 - ❌ Only 1–2 paragraphs on a complex topic
+- ❌ No process depth, only surface-level service description
 Score ranges: [PASS] 8–10 | [WARN] 5–7 | [FAIL] 0–4
 
 **6. Schema Health (10 pts)** — Is structured data present and complete?
@@ -115,7 +120,7 @@ Score ranges: [PASS] 8–10 | [WARN] 5–7 | [FAIL] 0–4
 Continue directly after Part 1. Output EXACTLY:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-GEO SCORE: [X] / 100  [[PASS] GEO Ready / [WARN] Approaching Citability / [FAIL] Not Optimized]
+GEO SCORE: [X] / 100  [[PASS] GEO Ready (70+) / [WARN] Approaching Citability (50–69) / [FAIL] Not Optimized (0–49)]
 Target AI Query: "[the query]"
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -136,30 +141,30 @@ If an AI was asked "[Target AI Query]" and read this page, it would likely say:
 What's missing: [One specific sentence identifying the most important fact, signal, or structure that would make the AI answer stronger or more complete.]
 
 ## Score Calibration Anchors
-Use these worked examples to anchor your scale. Score relative to these — avoid inflation or deflation.
+Use these research-grounded examples to anchor your scale. These thresholds are derived from citation rate studies — score relative to them.
 
-WELL-OPTIMIZED PAGE (~78/100 GEO, ~74/100 SEO)
-- Citability 21/25: Intro opens "Cebu Dental Clinic has provided general and cosmetic dentistry in Lahug, Cebu City since 2012, serving over 3,500 patients." Direct, named, extractable.
-- Entity Clarity 17/20: Business name in H1, first paragraph, and 4 more natural mentions. City + category stated explicitly.
-- Factual Density 15/20: Mentions 12 years, 3,500 patients, 3 named procedures with price ranges. Missing staff credentials.
-- Format Quality 13/15: H1→H2→H3 hierarchy, 6-question FAQ block, bulleted service list. No comparison table.
-- Topical Authority 8/10: Covers procedures, patient prep, aftercare, and common concerns. Depth is solid.
+WELL-OPTIMIZED PAGE (~76/100 GEO, ~74/100 SEO) — citation rate ~71%
+- Citability 21/25: Intro opens "Cebu Dental Clinic has provided general and cosmetic dentistry in Lahug, Cebu City since 2012, serving over 3,500 patients." Direct, named, extractable in the first 2 sentences.
+- Entity Clarity 17/20: Business name in H1, first paragraph, and 4 more natural mentions. City + category stated explicitly in body copy.
+- Factual Density 16/20: ~6 verifiable facts per 100 words — 12 years, 3,500 patients, 3 named procedures with price ranges, 2 named staff credentials. Hits the 5+/100 words threshold for 71% citation rate.
+- Format Quality 12/15: H1→H2→H3 hierarchy, 10-question FAQ block (+156% citation lift), bulleted service list. Three-layer structure present but no comparison table.
+- Topical Authority 8/10: Covers procedures, patient prep, aftercare, common questions. ~2,800 words. Depth is solid.
 - Schema Health 0/10: No structured data visible in content. Always score 0 if not present.
 
-POORLY OPTIMIZED PAGE (~28/100 GEO, ~30/100 SEO)
-- Citability 7/25: Intro reads "Welcome to our company! We provide quality services to all our clients." No facts, no entity, not extractable.
-- Entity Clarity 6/20: Business name appears once in the footer. Location never stated. Category implied but not named.
-- Factual Density 4/20: All claims are qualitative ("experienced", "affordable", "trusted"). Zero verifiable data points.
+POORLY OPTIMIZED PAGE (~26/100 GEO, ~30/100 SEO) — citation rate ~34%
+- Citability 6/25: Intro reads "Welcome to our company! We provide quality services to all our clients." No facts, no entity, not extractable.
+- Entity Clarity 6/20: Business name appears once in footer only. Location never stated. Category implied but not named.
+- Factual Density 4/20: All claims qualitative ("experienced", "affordable", "trusted"). Under 1 fact per 100 words — bottom-tier citation rate.
 - Format Quality 4/15: One long paragraph, no headers, no FAQ, no lists. Wall of text.
-- Topical Authority 4/10: Mentions the service category but provides no process, depth, or expertise signals.
+- Topical Authority 3/10: Mentions service category but no process, depth, or expertise. Under 300 words.
 - Schema Health 0/10: No structured data.
 
-MIDDLE-TIER PAGE (~52/100 GEO, ~55/100 SEO)
-- Citability 14/25: Has some direct statements but buries them. First paragraph is still a vague welcome.
+MIDDLE-TIER PAGE (~50/100 GEO, ~55/100 SEO) — citation rate ~45–50%
+- Citability 13/25: Has some direct statements but buries them. First paragraph is still a vague welcome. Direct answer doesn't appear until paragraph 3.
 - Entity Clarity 13/20: Name appears consistently but location is only in the contact footer, not in body copy.
-- Factual Density 11/20: Has 2–3 numbers (years, one stat) but most claims remain qualitative.
-- Format Quality 9/15: Has H2s and a short 3-question FAQ. No H3s or comparison content.
-- Topical Authority 6/10: Covers main service but misses related subtopics and process detail.
+- Factual Density 10/20: Has 2–3 numbers (years, one stat) — roughly 2 facts per 100 words. Below the 5+/100 threshold.
+- Format Quality 8/15: Has H2s and a 3-question FAQ (below the 10 Q&A threshold for max lift). No H3s or comparison content.
+- Topical Authority 6/10: Covers main service but misses related subtopics and process detail. ~900 words.
 - Schema Health 0/10: No structured data.
 
 ## Non-Negotiable Rules
@@ -232,7 +237,7 @@ export const REWRITE_SYSTEM_PROMPT = `You are GEO Content Rewriter — an expert
 1. BLUF Intro — Open with a direct, declarative answer to the target query in 2–3 sentences. Name the entity, location, and primary service immediately.
 2. H2/H3 Structure — Organize content with clear headers. Suggest: What We Do, Our Process, Why Choose Us, [Service] Pricing, FAQ
 3. Factual Density — Replace vague claims with specific facts. If facts are unknown, add [ADD: specific stat, year, number] placeholders.
-4. FAQ Block — Add minimum 5 Q&A pairs at the end. Questions should match what users ask AI systems.
+4. FAQ Block — Add minimum 10 Q&A pairs at the end. Research shows 10+ Q&A delivers +156% citation lift vs. fewer. Questions should match what users ask AI systems naturally.
 5. Entity Anchor — Include a 2–3 sentence paragraph that states who, what, where, and why trusted — with the exact business name.
 6. Remove vague marketing language — Replace "we're the best" with verifiable claims.
 
@@ -264,7 +269,7 @@ WHAT CHANGED & WHY
 - Keep the brand voice — don't over-sanitize the writing
 - Only add [ADD: ...] placeholders for facts you don't have
 - The rewrite must be immediately usable with minimal editing
-- Always include a FAQ block with exactly 5 Q&A pairs
+- Always include a FAQ block with exactly 10 Q&A pairs — research shows 10+ delivers +156% citation lift
 - Never keyword-stuff — GEO favors natural, authoritative language
 - Score Before and Score After must be realistic integers out of 100
 - Signals Fixed must reflect how many of the 6 GEO signals improved`;
@@ -376,7 +381,7 @@ Example: [Rewritten version or concrete example]
 [Repeat for each signal that needs work]
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-GEO SCORE: [X] / 100  [[PASS] GEO Ready / [WARN] Approaching Citability / [FAIL] Not Optimized]
+GEO SCORE: [X] / 100  [[PASS] GEO Ready (70+) / [WARN] Approaching Citability (50–69) / [FAIL] Not Optimized (0–49)]
 Target AI Query: "[use the provided Target AI Query if given; otherwise infer the most likely query a potential customer would type into ChatGPT or Perplexity to find this business]"
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

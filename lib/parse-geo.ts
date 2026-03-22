@@ -12,14 +12,14 @@ export function parseGeoScore(text: string): number | null {
 }
 
 export function getScoreStatus(score: number): string {
-  if (score >= 80) return 'GEO Ready';
-  if (score >= 65) return 'Approaching Citability';
+  if (score >= 70) return 'GEO Ready';
+  if (score >= 50) return 'Approaching Citability';
   return 'Not Optimized';
 }
 
 export function getScoreColor(score: number): 'green' | 'yellow' | 'red' {
-  if (score >= 80) return 'green';
-  if (score >= 65) return 'yellow';
+  if (score >= 70) return 'green';
+  if (score >= 50) return 'yellow';
   return 'red';
 }
 

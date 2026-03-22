@@ -173,9 +173,13 @@ interface CompetitorTabProps {
 }
 
 export function CompetitorTab({ apiKey, provider, model }: CompetitorTabProps) {
-  const [myUrl, setMyUrl] = useState('');
-  const [competitorUrl, setCompetitorUrl] = useState('');
-  const [targetQuery, setTargetQuery] = useState('');
+  const [myUrl, setMyUrl] = useState(() => sessionStorage.getItem('competitor-myUrl') || '');
+  const [competitorUrl, setCompetitorUrl] = useState(
+    () => sessionStorage.getItem('competitor-competitorUrl') || ''
+  );
+  const [targetQuery, setTargetQuery] = useState(
+    () => sessionStorage.getItem('competitor-targetQuery') || ''
+  );
   const [validationError, setValidationError] = useState('');
   const [isFetching, setIsFetching] = useState(false);
   const [cachedReport, setCachedReportState] = useState<CachedReport | null>(null);
@@ -185,6 +189,26 @@ export function CompetitorTab({ apiKey, provider, model }: CompetitorTabProps) {
   const [rankReasons, setRankReasons] = useState<RankReason[]>([]);
   const [signalGaps, setSignalGaps] = useState<SignalGap[]>([]);
   const [displacementPlays, setDisplacementPlays] = useState<DisplacementPlay[]>([]);
+
+  // Persist inputs across tab switches
+  useEffect(() => {
+    sessionStorage.setItem('competitor-myUrl', myUrl);
+  }, [myUrl]);
+  useEffect(() => {
+    sessionStorage.setItem('competitor-competitorUrl', competitorUrl);
+  }, [competitorUrl]);
+  useEffect(() => {
+    sessionStorage.setItem('competitor-targetQuery', targetQuery);
+  }, [targetQuery]);
+
+  // Restore cached report on mount if URLs are already filled
+  useEffect(() => {
+    if (myUrl.trim() && competitorUrl.trim()) {
+      const key = cacheKey('competitor', myUrl.trim(), competitorUrl.trim(), targetQuery.trim());
+      const cached = getCachedReport(key);
+      if (cached) setCachedReportState(cached);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const {
     output: streamOutput,
@@ -302,6 +326,9 @@ export function CompetitorTab({ apiKey, provider, model }: CompetitorTabProps) {
     setRankReasons([]);
     setSignalGaps([]);
     setDisplacementPlays([]);
+    sessionStorage.removeItem('competitor-myUrl');
+    sessionStorage.removeItem('competitor-competitorUrl');
+    sessionStorage.removeItem('competitor-targetQuery');
   };
 
   const handleRefresh = () => {
