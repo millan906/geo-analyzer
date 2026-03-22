@@ -305,6 +305,8 @@ export function CompetitorTab({ apiKey, provider, model }: CompetitorTabProps) {
       run({
         myContent,
         competitorContent,
+        myDomain: parseDomain(myUrl.trim()),
+        competitorDomain: parseDomain(competitorUrl.trim()),
         targetQuery: targetQuery.trim() || 'Infer the most relevant target query from the content',
         apiKey: apiKey.trim(),
         provider,

@@ -10,6 +10,8 @@ export async function POST(request: Request) {
     const {
       myContent,
       competitorContent,
+      myDomain = 'Site A',
+      competitorDomain = 'Site B',
       targetQuery,
       apiKey,
       provider = 'gemini',
@@ -32,7 +34,7 @@ export async function POST(request: Request) {
         apiKey: effectiveKey,
         model,
         system: COMPETITOR_SYSTEM_PROMPT,
-        userMessage: `Perform a GEO competitor gap analysis.\n\nTarget AI Query: "${targetQuery.trim()}"\n\nSITE A:\n${myContent.trim()}\n\n---\n\nSITE B:\n${competitorContent.trim()}`,
+        userMessage: `Perform a GEO competitor gap analysis.\n\nTarget AI Query: "${targetQuery.trim()}"\n\nSITE A (${myDomain}):\n${myContent.trim()}\n\n---\n\nSITE B (${competitorDomain}):\n${competitorContent.trim()}`,
       },
       fallbacks
     );

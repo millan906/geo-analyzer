@@ -342,6 +342,7 @@ LOW SCORE (~28/100): Vague welcome intro, zero verifiable facts, no FAQ, no stru
 
 ## Rules
 - Score SITE A and SITE B with identical criteria — the labels carry no meaning. Never favor one side based on its label.
+- In all prose and analysis text, refer to each site by its actual domain name (provided in parentheses after SITE A / SITE B), not as "Site A" or "Site B". Only use "Site A GEO Score:" and "Site B GEO Score:" in the score header lines.
 - Use the calibration anchors above — do not drift above or below them for equivalent content.
 - The numbered COMPETITIVE EDGE ANALYSIS list must use the format: 1. **Title** — explanation
 - The SIGNAL-BY-SIGNAL GAP must be a markdown pipe table with exactly 3 columns: Signal, Priority, What to Do
