@@ -1,4 +1,4 @@
-const CACHE_PREFIX = 'geo-cache-v2-';
+const CACHE_PREFIX = 'geo-cache-v3-';
 const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
 export interface CachedReport {

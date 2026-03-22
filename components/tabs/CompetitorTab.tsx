@@ -419,7 +419,15 @@ export function CompetitorTab({ apiKey, provider, model }: CompetitorTabProps) {
             <p className={labelCls}>Your Site</p>
             <p className="text-sm font-bold text-gray-800 mb-3">{myDomain}</p>
             <div className="flex items-baseline gap-1">
-              <span className="text-[3.5rem] font-black tabular-nums leading-none text-gray-900">
+              <span
+                className={`text-[3.5rem] font-black tabular-nums leading-none ${
+                  myScore !== null && competitorScore !== null && myScore > competitorScore
+                    ? 'text-green-600'
+                    : myScore !== null && competitorScore !== null && myScore < competitorScore
+                      ? 'text-red-500'
+                      : 'text-gray-900'
+                }`}
+              >
                 {myScore ?? '—'}
               </span>
               <span className="text-lg text-gray-400 font-medium">/100</span>
@@ -442,7 +450,13 @@ export function CompetitorTab({ apiKey, provider, model }: CompetitorTabProps) {
             <p className="text-sm font-bold text-gray-800 mb-3">{competitorDomain}</p>
             <div className="flex items-baseline gap-1">
               <span
-                className={`text-[3.5rem] font-black tabular-nums leading-none ${competitorScore !== null ? 'text-green-600' : 'text-gray-900'}`}
+                className={`text-[3.5rem] font-black tabular-nums leading-none ${
+                  competitorScore !== null && myScore !== null && competitorScore > myScore
+                    ? 'text-green-600'
+                    : competitorScore !== null && myScore !== null && competitorScore < myScore
+                      ? 'text-red-500'
+                      : 'text-gray-900'
+                }`}
               >
                 {competitorScore ?? '—'}
               </span>
@@ -459,17 +473,25 @@ export function CompetitorTab({ apiKey, provider, model }: CompetitorTabProps) {
         </div>
       </div>
 
-      {/* Why they appear — always visible with placeholders */}
+      {/* Competitive edge analysis — always visible with placeholders */}
       <div className="space-y-3">
-        <p className={labelCls}>Why They Appear in AI Answers</p>
+        <p className={labelCls}>Competitive Edge Analysis</p>
         <div
           className={`bg-white rounded-2xl shadow-card p-6 space-y-5 transition-opacity ${isPlaceholder ? 'opacity-80' : ''}`}
         >
           <div>
-            <p className="text-sm font-bold text-gray-900">{competitorDomain} ranks because:</p>
+            <p className="text-sm font-bold text-gray-900">
+              {myScore !== null && competitorScore !== null
+                ? myScore > competitorScore
+                  ? `You outrank ${competitorDomain} in AI citability:`
+                  : myScore < competitorScore
+                    ? `${competitorDomain} currently outranks you:`
+                    : `Neck and neck with ${competitorDomain}:`
+                : `${competitorDomain} — competitive breakdown:`}
+            </p>
             <p className="text-sm text-gray-500 mt-0.5">
-              {displayReasons.length} key advantage{displayReasons.length !== 1 ? 's' : ''}{' '}
-              identified from their page structure and content signals.
+              {displayReasons.length} key differentiator{displayReasons.length !== 1 ? 's' : ''}{' '}
+              identified from the content signal comparison.
             </p>
           </div>
           <div className="space-y-4">
@@ -533,13 +555,13 @@ export function CompetitorTab({ apiKey, provider, model }: CompetitorTabProps) {
 
       {/* GEO Displacement Plays */}
       <div className="space-y-3">
-        <p className={labelCls}>GEO Displacement Plays</p>
+        <p className={labelCls}>GEO Action Plan</p>
         <div
           className={`bg-white rounded-2xl shadow-card p-6 space-y-6 transition-opacity ${isPlaceholder ? 'opacity-80' : ''}`}
         >
           <div>
             <p className="text-sm font-bold text-gray-900">
-              {displayPlays.length} moves to outrank them in AI answers
+              {displayPlays.length} moves to strengthen your position in AI answers
             </p>
             <p className="text-sm text-gray-500 mt-0.5">
               Ordered by impact — do these in sequence.
