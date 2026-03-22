@@ -32,7 +32,7 @@ export async function POST(request: Request) {
         apiKey: effectiveKey,
         model,
         system: COMPETITOR_SYSTEM_PROMPT,
-        userMessage: `Perform a GEO competitor gap analysis.\n\nTarget AI Query: "${targetQuery.trim()}"\n\nMY CONTENT:\n${myContent.trim()}\n\n---\n\nCOMPETITOR CONTENT:\n${competitorContent.trim()}`,
+        userMessage: `Perform a GEO competitor gap analysis.\n\nTarget AI Query: "${targetQuery.trim()}"\n\nSITE A:\n${myContent.trim()}\n\n---\n\nSITE B:\n${competitorContent.trim()}`,
       },
       fallbacks
     );

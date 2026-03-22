@@ -39,12 +39,15 @@ function parseDomain(url: string): string {
 }
 function parseMyScore(text: string): number | null {
   const m =
+    text.match(/Site\s+A\s+(?:GEO\s+)?Score:\s*(\d+)/i) ||
     text.match(/Your\s+(?:GEO\s+)?Score:\s*(\d+)/i) ||
     text.match(/My\s+(?:GEO\s+)?Score:\s*(\d+)/i);
   return m ? parseInt(m[1]) : null;
 }
 function parseCompetitorScore(text: string): number | null {
-  const m = text.match(/Competitor\s+(?:GEO\s+)?Score:\s*(\d+)/i);
+  const m =
+    text.match(/Site\s+B\s+(?:GEO\s+)?Score:\s*(\d+)/i) ||
+    text.match(/Competitor\s+(?:GEO\s+)?Score:\s*(\d+)/i);
   return m ? parseInt(m[1]) : null;
 }
 function parseRankReasons(text: string): RankReason[] {
